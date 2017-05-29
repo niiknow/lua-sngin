@@ -5,7 +5,7 @@ plan tests => repeat_each() * (blocks() * 4) - 1;
 
 my $pwd = cwd();
 
-$ENV{TEST_NGINX_RESOLVER} = '8.8.4.4';
+$ENV{TEST_NGINX_RESOLVER} = '8.8.8.8';
 $ENV{TEST_COVERAGE} ||= 0;
 
 our $HttpConfig = qq{
@@ -73,14 +73,17 @@ OK
                     }
                 }
             }
-            http.request(ars)
+
+            local rsp, err = pcall(http.request, ars)
+            ngx.say(rsp or err)
         ';
     }
 --- request
 GET /a2
 --- response_body
+true
 --- error_log
-failed to make request
+[error]
 
 === TEST 3: Simple capture get.
 --- http_config eval: $::HttpConfig

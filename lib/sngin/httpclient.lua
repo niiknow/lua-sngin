@@ -1,67 +1,58 @@
 -- https://github.com/pintsized/lua-resty-http
-local http_handle = require('resty.http')
-local sha1 = require('sha1')
+local http_handle       = require('resty.http')
+local sha1              = require('sha1')
+local utils             = require('sngin.utils')
 
-local escape_uri = ngx.escape_uri
-local unescape_uri = ngx.unescape_uri
-local encode_args = ngx.encode_args
-local decode_args = ngx.decode_args
-local encode_base64 = ngx.encode_base64
-local ngx_re_match = ngx.re.match
+local escape_uri        = ngx.escape_uri
+local unescape_uri      = ngx.unescape_uri
+local encode_args       = ngx.encode_args
+local decode_args       = ngx.decode_args
+local encode_base64     = ngx.encode_base64
+local ngx_re_match      = ngx.re.match
+local qsencode          = utils.qsencode
+local string_split      = utils.split
 
 -- perf
 local setmetatable = setmetatable
 
 local _M = {}
 
-function qsencode(tab, delimiter, quote)
-  local query = {}
-  local q = quote or ''
-  local sep = delimiter or ''
-  local keys = {}
-  for k in pairs(tab) do
-    keys[#keys+1] = k
-  end
-  table.sort(keys)
-  for _,name in ipairs(keys) do
-    local value = tab[name]
-    name = escape_uri(tostring(name))
-
-    local value = escape_uri(tostring(value))
-    if value ~= "" then
-      query[#query+1] = string.format('%s=%s', name, q .. value .. q)
-    else
-      query[#query+1] = name
-    end  
-  end
-  return table.concat(query, sep)
-end
-
-function normalizeParameters(parameters, body, query)
+-- local functions: are executed and placed in sequential orders
+local function normalizeParameters(parameters, body, query)
   local items = {qsencode(parameters, '&')}
   if body then
-    mysplit(body, '&', items)
+    string_split(body, '&', items)
   end
 
   if query then
-    mysplit(query, '&', items)
+    string_split(query, '&', items)
   end
   table.sort(items)
   return table.concat(items, '&')
 end
 
-function authHeader(opts)
-  local auth = opts["auth"]
-  if opts["auth"] then
-    if auth["oauth"] then
-      return oauthHeader(opts)
-    end
-    local cred = encode_base64(auth[0] .. ':' .. auth[1])
-    opts.headers["Authorization"] = "Basic " .. cred
-  end
+local function calculateBaseString(opts, parameters)
+  local body = opts["body"]
+  local url = opts["urlParsed"]
+  local method = opts["method"]
+  local parms = normalizeParameters(parameters, body, url.query)
+  return escape_uri(method) .. "&" .. escape_uri(opts["base_uri"]) .. "&" .. escape_uri(parms)
 end
 
-function oauthHeader(opts)
+local function secret(auth)
+  local oauth = auth["oauth"]
+  return unescape_uri(oauth["consumersecret"]) .. '&' .. unescape_uri(oauth["tokensecret"] or '')
+end
+
+local function signature(opts, parameters)
+  local strToSign = calculateBaseString(opts, parameters)
+  opts.strToSign = strToSign
+  local signedString = sha1.hmac_binary(secret(opts["auth"]), strToSign)
+  opts.signature = resultparms
+  return encode_base64(signedString)
+end
+
+local function oauthHeader(opts)
   local oauth = opts["auth"]["oauth"]
   if oauth then
     local timestamp = ngx.time()
@@ -87,45 +78,18 @@ function oauthHeader(opts)
   end
 end
 
-function calculateBaseString(opts, parameters)
-  local body = opts["body"]
-  local url = opts["urlParsed"]
-  local method = opts["method"]
-  local parms = normalizeParameters(parameters, body, url.query)
-  return escape_uri(method) .. "&" .. escape_uri(opts["base_uri"]) .. "&" .. escape_uri(parms)
-end
-
-function signature(opts, parameters)
-  local strToSign = calculateBaseString(opts, parameters)
-  opts.strToSign = strToSign
-  local signedString = sha1.hmac_binary(secret(opts["auth"]), strToSign)
-  opts.signature = resultparms
-  return encode_base64(signedString)
-end
-
-function secret(auth)
-  local oauth = auth["oauth"]
-  return unescape_uri(oauth["consumersecret"]) .. '&' .. unescape_uri(oauth["tokensecret"] or '')
-end
-
-function mysplit(str, sep, dest)
-	if (str == nil) then
-		return {}
-	end
-
-  if sep == nil then
-    sep = "%s"
+local function authHeader(opts)
+  local auth = opts["auth"]
+  if opts["auth"] then
+    if auth["oauth"] then
+      return oauthHeader(opts)
+    end
+    local cred = encode_base64(auth[0] .. ':' .. auth[1])
+    opts.headers["Authorization"] = "Basic " .. cred
   end
-
-  local t = dest or {}
-  for str in string.gmatch(str, "([^"..sep.."]+)") do
-    table.insert(t, str)
-  end
-
-  return t
 end
 
-function ngx_request(request_uri, opts)
+local function ngx_request(request_uri, opts)
   local capture_url = opts.capture_url or "/__capture"
   local capture_variable = opts.capture_variable  or "url"
 

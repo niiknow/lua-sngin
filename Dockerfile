@@ -109,6 +109,9 @@ RUN \
 # Add additional binaries into PATH for convenience
 ENV PATH=$PATH:/usr/local/openresty/luajit/bin/:/usr/local/openresty/nginx/sbin/:/usr/local/openresty/bin/
 
+RUN /usr/local/openresty/luajit/bin/luarocks install resty-http
+RUN /usr/local/openresty/luajit/bin/luarocks install resty-sha1
+RUN /usr/local/openresty/luajit/bin/luarocks install penlight
 RUN /usr/local/openresty/luajit/bin/luarocks install lua-sngin
 
 ADD ./dockerfiles /
