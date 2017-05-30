@@ -8,7 +8,7 @@ ENV LC_ALL=en_US.UTF-8 \
     TERM=xterm  \
     container=docker \
     DEBIAN_FRONTEND=noninteractive
-
+   
 # Docker Build Arguments
 ARG RESTY_VERSION="1.11.2.3"
 ARG RESTY_LUAROCKS_VERSION="2.3.0"
@@ -73,6 +73,8 @@ RUN \
         nano \
         zlib1g-dev \
         libssl-dev \
+        gettext \
+        git \
     && cd /tmp \
     && curl -fSL https://www.openssl.org/source/openssl-${RESTY_OPENSSL_VERSION}.tar.gz -o openssl-${RESTY_OPENSSL_VERSION}.tar.gz \
     && tar xzf openssl-${RESTY_OPENSSL_VERSION}.tar.gz \
@@ -107,14 +109,18 @@ RUN \
     && ln -sf /dev/stderr /usr/local/openresty/nginx/logs/error.log
 
 # Add additional binaries into PATH for convenience
-ENV PATH=$PATH:/usr/local/openresty/luajit/bin/:/usr/local/openresty/nginx/sbin/:/usr/local/openresty/bin/
-
-RUN /usr/local/openresty/luajit/bin/luarocks install resty-http
-RUN /usr/local/openresty/luajit/bin/luarocks install resty-sha1
-RUN /usr/local/openresty/luajit/bin/luarocks install penlight
-RUN /usr/local/openresty/luajit/bin/luarocks install lua-sngin
+ENV PATH=$PATH:/usr/local/openresty/luajit/bin/:/usr/local/openresty/nginx/sbin/:/usr/local/openresty/bin/ \
+    LUA_PATH "./src/?.lua;./src/?/?.lua;./src/?/init.lua;/usr/local/openresty/lualib/?/?.lua;/usr/local/openresty/lualib/?.lua;/usr/local/openresty/nginx/lualib/?.lua;./?.lua;/usr/local/openresty/lib/?.lua;;" 
 
 ADD ./dockerfiles /
+RUN /usr/local/openresty/luajit/bin/luarocks install lua-resty-http 0.08-0 \
+    /usr/local/openresty/luajit/bin/luarocks install sha1 0.5-1 \
+    /usr/local/openresty/luajit/bin/luarocks install penlight 1.4.1 \
+    /usr/local/openresty/luajit/bin/luarocks install lua-cjson 2.1.0-1 \
+    /usr/local/openresty/luajit/bin/luarocks install lua-lru 1.0-1 \
+    /usr/local/openresty/luajit/bin/luarocks install lua-lru bcrypt 2.1-4 \
+    /usr/local/openresty/luajit/bin/luarocks install lua-lru luacrypto 0.3.2-2 \
+    /usr/local/openresty/luajit/bin/luarocks install lua-lru lua-resty-string 0.09-0
 
 EXPOSE 80
 

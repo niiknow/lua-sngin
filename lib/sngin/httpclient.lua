@@ -1,16 +1,17 @@
 -- https://github.com/pintsized/lua-resty-http
 local http_handle       = require('resty.http')
-local sha1              = require('sha1')
 local utils             = require('sngin.utils')
 
 local escape_uri        = ngx.escape_uri
 local unescape_uri      = ngx.unescape_uri
 local encode_args       = ngx.encode_args
 local decode_args       = ngx.decode_args
-local encode_base64     = ngx.encode_base64
+local encode_base64     = utils.base64.encode
 local ngx_re_match      = ngx.re.match
 local qsencode          = utils.qsencode
 local string_split      = utils.split
+local digest_hmac_sha1  = ngx.hmac_sha1
+local digest_md5        = ngx.md5
 
 -- perf
 local setmetatable = setmetatable
@@ -47,7 +48,7 @@ end
 local function signature(opts, parameters)
   local strToSign = calculateBaseString(opts, parameters)
   opts.strToSign = strToSign
-  local signedString = sha1.hmac_binary(secret(opts["auth"]), strToSign)
+  local signedString = digest_hmac_sha1(secret(opts["auth"]), strToSign)
   opts.signature = resultparms
   return encode_base64(signedString)
 end
@@ -61,7 +62,7 @@ local function oauthHeader(opts)
       oauth_token = oauth["accesstoken"],
       oauth_signature_method = "HMAC-SHA1",
       oauth_timestamp = timestamp,
-      oauth_nonce = sha1(timestamp .. ''),
+      oauth_nonce = digest_md5(timestamp .. ''),
       oauth_version = oauth["version"] or '1.0'
     }
 
