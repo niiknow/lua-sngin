@@ -131,23 +131,7 @@ _M.qsencode = qsencode
 -- convert a query string into a table of key/value pairs
 _M.qsparse =  decode_args
 
-
---[[
-    url – The target URL, including scheme, e.g. http://example.com
-    method (optional, default is "GET") – The HTTP verb, e.g. GET or POST
-    data (optional) – Either a string (the raw bytes of the request body) or a table (converted to form POST parameters)
-    params (optional) – A table that's converted into query string parameters. E.g. {color="red"} becomes ?color=red
-    auth (optional) – Two possibilities:
-        auth={'username', 'password'} means to use HTTP basic authentication
-        auth={oauth={consumertoken='...', consumersecret='...', accesstoken='...', tokensecret='...'}} means to sign the request with OAuth. Only consumertoken and consumersecret are required (e.g. for obtaining a request token)
-    headers (optional) – A table of the request header key/value pairs
-call to http.request returns a table with the following fields:
-    content – The raw bytes of the HTTP response body, after being decoded if necessary according to the response's Content-Encoding header.
-    statuscode – The numeric status code of the HTTP response
-    headers – A table of the response's headers
-The function http.qsencode can be used to convert a table of key/value pairs into a query string. This function is rarely needed because the params field can be used to the same effect when making an HTTP request.
-The function http.qsparse can be used to convert a query string into a table of key/value pairs. This function is rarely needed because request.query already contains the parsed query string for an incoming request. 
-]]
+-- make a request
 function _M.request(options)
   local opts = options or {}
   if type(opts) ~= 'table' then
@@ -200,7 +184,7 @@ function _M.request(options)
     base_uri = base_uri .. '?' .. query
   end
 
-  if (opts.use_capture) then
+  if (opts.use_capture or opts.capture_url) then
     return ngx_request(base_uri, args)
   end
 

@@ -1,127 +1,123 @@
---- usage:
--- require = require"require".require
--- :o)
-local error, ipairs, newproxy, type = error, ipairs, newproxy, type
+--- Small library for running Lua code in a sandbox.
+--
+-- @module sandbox
+-- @author darkstalker <https://github.com/darkstalker>
+-- @license MIT/X11
+local assert, error, getmetatable, loadstring, pairs, pcall, select, setfenv, setmetatable, table_concat, type =
+      assert, error, getmetatable, loadstring, pairs, pcall, select, setfenv, setmetatable, table.concat, type
 
-local t_concat = table.concat
+local table_pack = table.pack or function(...) return { n = select("#", ...), ... } end
+local table_unpack = table.unpack or unpack
 
---- Helpers
-
-
-local function checkstring(s)
-    local t = type(s)
-    if t == "string" then
-        return s
-    elseif t == "number" then
-        return tostring(s)
-    else
-        error("bad argument #1 to 'require' (string expected, got "..t..")", 3)
-    end
+local has_52_compatible_load = _VERSION ~= "Lua 5.1" or tostring(assert):match "builtin"
+local load = has_52_compatible_load and load or function(code, name, mode, env)
+    --mode = mode or "bt"
+    if code:byte(1) == 27 --[[and not mode:match "b"]] then return nil, "can't load binary chunk" end
+    local chunk, err = loadstring(code, name)
+    if chunk and env then setfenv(chunk, env) end
+    return chunk, err
 end
 
---- for Lua 5.1
+local function pack_1(first, ...) return first, table_pack(...) end
 
-local package, p_loaded = package, package.loaded
+local _M = {}
 
+-- Builds the environment table for a sandbox.
+local function build_env(src_env, dest_env, whitelist)
+    dest_env = dest_env or {}
+    assert(getmetatable(dest_env) == nil, "env has a metatable")
 
-local sentinel do
-    local function errhandler() error("the require() sentinel can't be indexed or updated", 2) end
-    sentinel = newproxy and newproxy() or setmetatable({}, {__index = errhandler, __newindex = errhandler, __metatable = false})
-end
-
-local function require51 (name)
-    name = checkstring(name)
-    if p_loaded[name] == sentinel then
-        error("loop or previous error loading module '"..name.."'", 2)
-    end
-
-    local module = p_loaded[name]
-    if module then return module end
-
-    local msg = {}
-    local loader
-    for _, searcher in ipairs(package.loaders) do
-        loader = searcher(name)
-        if type(loader) == "function" then break end
-        if type(loader) == "string" then
-            -- `loader` is actually an error message
-            msg[#msg + 1] = loader
+    local env = {}
+    for name in whitelist:gmatch "%S+" do
+        local t_name, field = name:match "^([^%.]+)%.([^%.]+)$"
+        if t_name then
+            local tbl = env[t_name]
+            local env_t = src_env[t_name]
+            if tbl == nil and env_t then
+                tbl = {}
+                env[t_name] = tbl
+            end
+            if env_t then
+                local t_tbl = type(tbl)
+                if t_tbl ~= "table" then
+                    error("field '".. t_name .. "' already added as " .. t_tbl)
+                end
+                tbl[field] = env_t[field]
+            end
+        else
+            local val = src_env[name]
+            assert(type(val) ~= "table", "can't copy table reference")
+            env[name] = val
         end
-        loader = nil
-    end
-    if loader == nil then
-        error("module '" .. name .. "' not found: "..t_concat(msg), 2)
-    end
-    p_loaded[name] = sentinel
-    local res = loader(name)
-    if res ~= nil then
-        module = res
-    elseif p_loaded[name] == sentinel or not p_loaded[name] then
-        module = true
-    else
-	module = p_loaded[name]
     end
 
-    p_loaded[name] = module
-    return module
+    env._G = dest_env
+
+    return setmetatable(dest_env, { __index = env })
 end
 
---- for Lua 5.2
+--- List of safe library methods (5.1 to 5.3)
+_M.whitelist = [[
+_VERSION assert error ipairs next pairs pcall select tonumber tostring type unpack xpcall
 
-local function require52 (name)
-    name = checkstring(name)
-    local module = p_loaded[name]
-    if module then return module end
+bit32.arshift bit32.band bit32.bnot bit32.bor bit32.btest bit32.bxor bit32.extract bit32.lrotate
+bit32.lshift bit32.replace bit32.rrotate bit32.rshift
 
-    local msg = {}
-    local loader, param
-    for _, searcher in ipairs(package.searchers) do
-        loader, param = searcher(name)
-        if type(loader) == "function" then break end
-        if type(loader) == "string" then
-            -- `loader` is actually an error message
-            msg[#msg + 1] = loader
-        end
-        loader = nil
-    end
-    if loader == nil then
-        error("module '" .. name .. "' not found: "..t_concat(msg), 2)
-    end
-    local res = loader(name, param)
-    if res ~= nil then
-        module = res
-    elseif not p_loaded[name] then
-        module = true
-    else
-	module = p_loaded[name]
-    end
+coroutine.create coroutine.isyieldable coroutine.resume coroutine.running coroutine.status
+coroutine.wrap coroutine.yield
 
-    p_loaded[name] = module
-    return module
+math.abs math.acos math.asin math.atan math.atan2 math.ceil math.cos math.cosh math.deg math.exp
+math.floor math.fmod math.frexp math.huge math.ldexp math.log math.log10 math.max math.maxinteger
+math.min math.mininteger math.mod math.modf math.pi math.pow math.rad math.random math.sin
+math.sinh math.sqrt math.tan math.tanh math.tointeger math.type math.ult
+
+os.clock os.difftime os.time
+
+string.byte string.char string.find string.format string.gmatch string.gsub string.len string.lower
+string.match string.pack string.packsize string.rep string.reverse string.sub string.unpack
+string.upper
+
+table.concat table.insert table.maxn table.pack table.remove table.sort table.unpack
+
+utf8.char utf8.charpattern utf8.codepoint utf8.codes utf8.len utf8.offset
+]]
+
+--- Executes Lua code in a sandbox.
+--
+-- @param code      Lua source code string.
+-- @param name      Name of the chunk (for errors, default "sandbox").
+-- @param env       Table used as environment (default a new empty table).
+-- @param whitelist String with a list of library functions imported from the global namespace (default `sandbox.whitelist`).
+-- @return          The `env` where the code was ran, or `nil` in case of error.
+-- @return          The chunk return values, or an error message.
+function _M.eval_safe(code, name, env, whitelist)
+    assert(type(code) == "string", "code must be a string")
+    env = build_env(_G or _ENV, env, whitelist or _M.whitelist)
+    local fn, err = load(code, name or "sandbox", "t", env)
+    if fn == nil then
+        return nil, err
+    end
+    local ok, ret = pack_1(pcall(fn))
+    if not ok then
+        return nil, ret[1]
+    end
+    return env, table_unpack(ret, 1, ret.n)
 end
 
-local module = {
-    VERSION = "0.1.7",
-    require51 = require51,
-    require52 = require52
-}
+_M.build_env = build_env
 
-if _VERSION == "Lua 5.1" then module.require = require51 end
-if _VERSION == "Lua 5.2" then module.require = require52 end
-
---- rerequire :o)
-
-for _, o in ipairs{
-    {"rerequiredefault", require},
-    {"rerequire", module.require},
-    {"rerequire51", require51},
-    {"rerequire52", require52}
-} do
-    local rereq, req = o[1], o[2]
-    module[rereq] = function(name)
-        p_loaded[name] = nil
-        return req(name)
+function _M.eval(code, name, env)
+    assert(type(code) == "string", "code must be a string")
+    assert(type(code) ~= "table", "env is required")
+    local fn, err = load(code, name or "sandbox", "t", env)
+    if fn == nil then
+        return nil, err
     end
+    local ok, ret = pack_1(pcall(fn))
+    if not ok then
+        return nil, ret[1]
+    end
+    return env, table_unpack(ret, 1, ret.n)
 end
 
-return module
+return _M
