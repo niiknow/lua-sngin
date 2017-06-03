@@ -1,6 +1,5 @@
 require 'luarocks.loader' 
-local crypto = require("crypto")
 local utils = require("lib.sngin.utils")
-
-local hi = crypto.list("digests")
-print(utils.dump(hi))
+local base, file, query = utils.parseGithubRawLua("github.com-production/niiknow/test-repo/hello.world.lua?boom=1")
+local url = base .. file .. query
+print(url)

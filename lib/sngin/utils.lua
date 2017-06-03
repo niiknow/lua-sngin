@@ -64,9 +64,9 @@ function _M.qsencode(tab, delimiter, quote)
   table.sort(keys)
   for _,name in ipairs(keys) do
     local value = tab[name]
-    name = encodeURIComponent(tostring(name))
+    name = _M.encodeURIComponent(tostring(name))
 
-    local value = encodeURIComponent(tostring(value))
+    local value = _M.encodeURIComponent(tostring(value))
     if value ~= "" then
       query[#query+1] = string.format('%s=%s', name, q .. value .. q)
     else
@@ -74,6 +74,28 @@ function _M.qsencode(tab, delimiter, quote)
     end  
   end
   return table.concat(query, sep)
+end
+
+function _M.parseGithubRawLua(modname)
+  -- capture path: https://raw.githubusercontent.com/
+  local capturePath = "https://raw.githubusercontent.com/"
+  if rawget(_G, __ghrawbase) == nil then
+    if string.find(modname, "github.com") then
+      local branch, user, repo, pathx, query = string.match(modname, "github.com[-]*([^/?#]*)/([^/]+)(/[^/]+)(/[^?#]*)(.*)")
+      local path, file = string.match(pathx, "^(.*/)([^/]*)$")
+
+      if branch == "" then
+        branch = "master"
+      end
+
+      local base = string.format("%s%s%s/%s%s", capturePath, user, repo, branch, path)
+
+      -- convert period to folder before return
+      return base, string.gsub(string.gsub(file, "%.lua$", ""), '%.', "/") .. ".lua", query
+    end
+  else
+    return __ghrawbase, string.gsub(string.gsub(modname, "%.lua$", ""), '%.', "/") .. ".lua", ""
+  end
 end
 
 return _M
