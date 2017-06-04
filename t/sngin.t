@@ -48,7 +48,6 @@ __DATA__
 GET /a
 --- response_body
 Hello World
-
 --- no_error_log
 [error]
 [warn]

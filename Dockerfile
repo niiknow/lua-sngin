@@ -106,20 +106,23 @@ RUN \
     && rm -rf luarocks-${RESTY_LUAROCKS_VERSION} luarocks-${RESTY_LUAROCKS_VERSION}.tar.gz \
     && DEBIAN_FRONTEND=noninteractive apt-get autoremove -y \
     && ln -sf /dev/stdout /usr/local/openresty/nginx/logs/access.log \
-    && ln -sf /dev/stderr /usr/local/openresty/nginx/logs/error.log
+    && ln -sf /dev/stderr /usr/local/openresty/nginx/logs/error.log \
+    && mkdir -p /app/lib
 
 # Add additional binaries into PATH for convenience
 ENV PATH=$PATH:/usr/local/openresty/luajit/bin/:/usr/local/openresty/nginx/sbin/:/usr/local/openresty/bin/ \
-    LUA_PATH "./src/?.lua;./src/?/?.lua;./src/?/init.lua;/usr/local/openresty/lualib/?/?.lua;/usr/local/openresty/lualib/?.lua;/usr/local/openresty/nginx/lualib/?.lua;./?.lua;/usr/local/openresty/lib/?.lua;;" 
+    LUA_PATH="/app/?.lua;/app/?/?.lua;/app/?/init.lua;/app/lib/?.lua;/app/lib/?/?.lua;/usr/local/openresty/site/lualib/?.lua;/usr/local/openresty/site/lualib/?/init.lua;/usr/local/openresty/lualib/?.lua;/usr/local/openresty/lualib/?/init.lua;/usr/local/openresty/lib/?.lua;;" 
 
 ADD ./dockerfiles /
-RUN /usr/local/openresty/luajit/bin/luarocks install lua-cjson 2.1.0-1 \
-    /usr/local/openresty/luajit/bin/luarocks install lua-resty-http 0.08-0 \
-    /usr/local/openresty/luajit/bin/luarocks install lua-resty-string 0.09-0 \
-    /usr/local/openresty/luajit/bin/luarocks install lua-lru 1.0-1 \
-    /usr/local/openresty/luajit/bin/luarocks install bcrypt 2.1-4 \
-    /usr/local/openresty/luajit/bin/luarocks install luacrypto 0.3.2-2 \
-    /usr/local/openresty/luajit/bin/luarocks install penlight 1.4.1
+ADD ./lib /app/lib/
+RUN /usr/local/openresty/luajit/bin/luarocks install lua-resty-http 0.08-0 \
+    && /usr/local/openresty/luajit/bin/luarocks install lua-resty-string 0.09-0 \
+    && /usr/local/openresty/luajit/bin/luarocks install lua-lru 1.0-1 \
+    && /usr/local/openresty/luajit/bin/luarocks install bcrypt 2.1-4 \
+    && /usr/local/openresty/luajit/bin/luarocks install luacrypto 0.3.2-2 \
+    && /usr/local/openresty/luajit/bin/luarocks install penlight 1.4.1
+
+RUN chown -R www-data:www-data /app; chmod -R 755 /app
 
 EXPOSE 80
 

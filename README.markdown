@@ -45,4 +45,10 @@ Synopsis
 
 [Back to TOC](#table-of-contents)
 
+# Note
+Mid 2015 Macbook Pro i7 2.5ghz macOS Sierra 10.15.5
+Docker 1 core - Hello World
+Local - 2365 req/s
+Github root - 517 req/s
+
 # MIT
