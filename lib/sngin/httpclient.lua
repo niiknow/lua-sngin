@@ -1,6 +1,6 @@
 -- https://github.com/pintsized/lua-resty-http
-local http_handle       = require('resty.http')
-local utils             = require('sngin.utils')
+local http_handle       = require "resty.http"
+local utils             = require "sngin.utils"
 
 local escape_uri        = ngx.escape_uri
 local unescape_uri      = ngx.unescape_uri

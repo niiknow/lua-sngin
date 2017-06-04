@@ -3,6 +3,44 @@ Name
 
 lua-sngin - dynamic scripting for ngx_lua and LuaJIT
 
+Run your own multi-tenant lua microservice with code hosted on s3.  Everything by convention.
+
+* Hit the site: http://example.com/deletelog
+> Code from s3://bucketname/folder/example.com/deletelog/index.lua
+```lua
+-- private s3 allow you to store your secret
+local ACCOUNT='youraccount'
+local KEY='yourkey'
+
+-- reference public code from your github repo
+local azure = require('github.com/niiknow/webslib/azure.lua')
+
+-- build you api call
+local now = os.time()
+local today = os.date("%Y%m%d", now)
+local sixtyDaysAgo = os.date("%Y%m%d", now - 59*60*24*60)
+local tableSixtyDaysAgo = string.format("logtableprefix%s", sixtyDaysAgo)
+local path = string.format("Tables('%s')", tableSixtyDaysAgo)
+local url = string.format("http://%s.table.core.windows.net/%s", ACCOUNT, path)
+
+local skl = azure.util.sharedkeylite({
+        account = ACCOUNT, 
+        key = KEY, 
+        table = path })
+
+local headers = azure.table.getHeader('DELETE', skl)
+
+-- make the api call
+local response = http.request {
+    method = 'DELETE',
+    url = url,
+    headers = headers
+}
+
+-- return data
+return tableSixtyDaysAgo
+```
+
 Table of Contents
 =================
 
@@ -45,7 +83,8 @@ Synopsis
 
 [Back to TOC](#table-of-contents)
 
-# Note
+# Benchmarks
+## bench1
 Mid 2015 Macbook Pro i7 2.5ghz macOS Sierra 10.15.5
 Docker 1 core - Hello World
 Local - 2365 req/s
