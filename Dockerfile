@@ -107,14 +107,15 @@ RUN \
     && DEBIAN_FRONTEND=noninteractive apt-get autoremove -y \
     && ln -sf /dev/stdout /usr/local/openresty/nginx/logs/access.log \
     && ln -sf /dev/stderr /usr/local/openresty/nginx/logs/error.log \
-    && mkdir -p /app/lib
+    && mkdir -p /app/lib/sngin
 
 # Add additional binaries into PATH for convenience
 ENV PATH=$PATH:/usr/local/openresty/luajit/bin/:/usr/local/openresty/nginx/sbin/:/usr/local/openresty/bin/ \
     LUA_PATH="/app/?.lua;/app/?/?.lua;/app/?/init.lua;/app/lib/?.lua;/app/lib/?/?.lua;/usr/local/openresty/site/lualib/?.lua;/usr/local/openresty/site/lualib/?/init.lua;/usr/local/openresty/lualib/?.lua;/usr/local/openresty/lualib/?/init.lua;/usr/local/openresty/lib/?.lua;;" 
 
 ADD ./dockerfiles /
-ADD ./lib /app/lib/
+ADD ./lib/sngin /app/lib/sngin/
+ADD ./lib/*.lua /app/
 RUN /usr/local/openresty/luajit/bin/luarocks install lua-resty-http 0.08-0 \
     && /usr/local/openresty/luajit/bin/luarocks install lua-resty-string 0.09-0 \
     && /usr/local/openresty/luajit/bin/luarocks install lua-lru 1.0-1 \

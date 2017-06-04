@@ -82,7 +82,7 @@ function _M.parseGithubRawLua(modname)
   if rawget(_G, __ghrawbase) == nil then
     -- only handle github.com for now
     if string.find(modname, "github.com/") then
-      local user, repo, branch, pathx, query = string.match(modname, "github.com/([^/]+)(/[^/]+)/blob(/[^/]+)(/[^?#]*)(.*)")
+      local user, repo, branch, pathx, query = string.match(modname, "github%.com/([^/]+)(/[^/]+)/blob(/[^/]+)(/[^?#]*)(.*)")
       local path, file = string.match(pathx, "^(.*/)([^/]*)$")
       local base = string.format("%s%s%s%s%s", capturePath, user, repo, branch, path)
 
@@ -94,4 +94,7 @@ function _M.parseGithubRawLua(modname)
   end
 end
 
+function _M.parseS3Url(s3url)
+  local bucket, path = string.match(modname, "%.amazonaws%.com/([^/]+)(.*)")
+end
 return _M
