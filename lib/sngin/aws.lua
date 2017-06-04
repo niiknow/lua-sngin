@@ -1,9 +1,12 @@
--- https://github.com/paragasu/lua-resty-aws-auth
--- modified version of above using out own crypto
+-- generate amazon v4 authorization signature
+-- https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
+-- Author: jeffry L. paragasu@gmail.com
+-- Licence: MIT
 
-local ngin            = require "sngin.ngin"
-local crypto          = ngin.crypto
 
+local resty_sha256 = require 'resty.sha256'
+local hmac   = require 'resty.hmac'
+local str  = require 'resty.string'
 local aws_key, aws_secret, aws_region, aws_service, aws_host
 local iso_date, iso_tz, cont_type, req_method, req_path, req_body
 
@@ -24,7 +27,6 @@ function _M.new(self, config)
   req_method  = config.request_method or "POST"
   req_path    = config.request_path   or "/"
   req_body    = config.request_body
-
   -- set default time
   self:set_iso_date(ngx.time())
   return setmetatable(_M, mt)
@@ -83,22 +85,27 @@ end
 
 -- generate sha256 from the given string
 function _M.get_sha256_digest(self, s)
-  return crypto.sha256(s).hex()
+  local h = resty_sha256:new()
+  h:update(s)
+  return str.to_hex(h:final())
 end
 
 
 function _M.hmac(self, secret, message)
-  return crypto.hmac(secret, message, "sha256")
+  local h = hmac:new(secret, hmac.ALGOS.SHA256)
+  local s = h:final(message, false)
+  h:reset()
+  return s
 end
 
 
 -- get signing key
 -- https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
 function _M.get_signing_key(self)
-  local  k_date    = self:hmac('AWS4' .. aws_secret, iso_date).digest()
-  local  k_region  = self:hmac(k_date, aws_region).digest()
-  local  k_service = self:hmac(k_region, aws_service).digest()
-  local  k_signing = self:hmac(k_service, 'aws4_request').digest()
+  local  k_date    = self:hmac('AWS4' .. aws_secret, iso_date)
+  local  k_region  = self:hmac(k_date, aws_region)
+  local  k_service = self:hmac(k_region, aws_service)
+  local  k_signing = self:hmac(k_service, 'aws4_request')
   return k_signing
 end
 
@@ -116,7 +123,7 @@ end
 function _M.get_signature(self)
   local  signing_key = self:get_signing_key()
   local  string_to_sign = self:get_string_to_sign()
-  return self:hmac(signing_key, string_to_sign).hex()
+  return str.to_hex(self:hmac(signing_key, string_to_sign))
 end
 
 
@@ -147,5 +154,9 @@ function _M.get_date_header()
   return iso_tz
 end
 
+function _M.get_content_sha256(self)
+  local digest = self:get_sha256_digest('')
+  return digest
+end
 
 return _M

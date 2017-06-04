@@ -124,9 +124,6 @@ http {
     proxy_temp_path                  /var/cache/nginx/temp;
 
 
-    # Prevent Client headers from going to nginx.
-    proxy_pass_request_headers       off;
-
     # Lua settings
     lua_package_path                 "/app/?.lua;/app/?/?.lua;/app/?/init.lua;/app/lib/?.lua;/app/lib/?/?.lua;/usr/local/openresty/site/lualib/?.lua;/usr/local/openresty/site/lualib/?/init.lua;/usr/local/openresty/lualib/?.lua;/usr/local/openresty/lualib/?/init.lua;/usr/local/openresty/lib/?.lua;;";
 

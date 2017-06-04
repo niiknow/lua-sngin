@@ -1,8 +1,6 @@
 local cjson_safe        = require "cjson.safe"
 local plpretty          = require "pl.pretty"
-local crypto            = require "crypto"
-local bcrypt            = require "bcrypt" 
-local hmac              = require "crypto.hmac"
+local crypto            = require "sngin.crypto"
 local httpc				      = require "sngin.httpclient"
 local sandbox           = require "sngin.sandbox"
 local utils             = require "sngin.utils"
@@ -15,32 +13,6 @@ local parseghrlua       = utils.parseGithubRawLua
 
 local _M = {}
 
-function crypto_wrapper(dtype)
-  local rst = {
-    digest = function(str)
-      return crypto.digest(dtype, str, true)
-    end,
-    hex = function(str)
-      return crypto.digest(dtype, string, false)
-    end
-  }
-end
-
-function hmac_wrapper(key, str, hasher)
-  local rst = {
-    digest = function()
-      return hmac.digest(hasher, str, key, true)
-    end,
-    hex = function()
-      hmac.digest(hasher, str, key, false)
-    end
-  }
-end
-
-local bcrypt_hash = function(str, rounds)
-  return bcrypt.digest(str, rounds or 12)
-end
-
 _M.base64 = {
   encode = encode_base64,
   decode = decode_base64
@@ -49,22 +21,6 @@ _M.base64 = {
 _M.json = {
   encode = cjson_safe.encode,
   decode = cjson_safe.decode
-}
-
-_M.crypto = {
-  bcrypt = bcrypt_hash,
-  md5 = crypto_wrapper("md5"),
-  sha1 = crypto_wrapper("sha1"),
-  sha256 = crypto_wrapper("sha256"),
-  hmac = function(key, str, hasher)
-    if hasher == self.md5 then
-      return hmac_wrapper(key, str, "md5")
-    elseif hasher == self.sha1 then
-      return hmac_wrapper(key, str, "sha1")
-    elseif hasher == self.sha256 then
-      return hmac_wrapper(key, str, "sha256")
-    end
-  end
 }
 
 _M.crypto = crypto
@@ -79,7 +35,7 @@ end
 
 function _M.require_new(modname)
 	local env = {
-		http = httpclient,
+		http = httpc,
 		require = _M.require_new,
 		base64 = _M.base64,
 		json = _M.json,
@@ -111,10 +67,41 @@ function _M.require_new(modname)
 	return nil, "unable to load module [" .. modname .. "]"
 end
 
-
 function _M.log(msg)
   -- ngx capture to /__log
   return nil
+end
+
+function _M.handleResponse(first, second)
+  local statusCode = 200
+  local msg = ""
+  local contentType = "text/plain"
+  local opts = {}
+
+  if type(first) == 'number' then
+    statusCode = first
+
+    if type(second) == 'string' then
+      msg = second
+    end
+  elseif type(first) == 'string' then
+    msg = first
+  elseif type(first) == 'table' then
+    contentType = "application/json"
+    msg = cjson_safe.encode(first)
+  end
+
+  ngx.req.set_header('Content-Type', contentType)
+
+  if type(second) == 'table' then
+    for k, v in pairs(second) do
+      ngx.req.set_header(k, v)
+    end
+  end
+
+  ngx.status = statusCode
+  ngx.say(msg)
+  ngx.exit(statusCode)
 end
 
 return _M

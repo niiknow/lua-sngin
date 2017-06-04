@@ -121,6 +121,8 @@ RUN /usr/local/openresty/luajit/bin/luarocks install lua-resty-http 0.08-0 \
     && /usr/local/openresty/luajit/bin/luarocks install lua-lru 1.0-1 \
     && /usr/local/openresty/luajit/bin/luarocks install bcrypt 2.1-4 \
     && /usr/local/openresty/luajit/bin/luarocks install luacrypto 0.3.2-2 \
+    && /usr/local/openresty/luajit/bin/luarocks install lua-resty-hmac v1.0-1 \
+    && /usr/local/openresty/luajit/bin/luarocks install lua-api-gateway-aws 1.7.1-0 \
     && /usr/local/openresty/luajit/bin/luarocks install penlight 1.4.1
 
 RUN chown -R www-data:www-data /app; chmod -R 755 /app
