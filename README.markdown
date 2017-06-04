@@ -13,7 +13,9 @@ local ACCOUNT='youraccount'
 local KEY='yourkey'
 
 -- reference public code from your github repo
-local azure = require('github.com/niiknow/webslib/azure.lua')
+-- by convention, use a path that you can actually resolve with browser
+-- so we require both refs of github.com/ and blob/master/ in path
+local azure = require('github.com/niiknow/webslib/blob/master/azure.lua')
 
 -- build you api call
 local now = os.time()
@@ -40,6 +42,12 @@ local response = http.request {
 -- return data
 return tableSixtyDaysAgo
 ```
+
+# Benefits of storing your code on s3
+* codes are protected by private bucket
+* versioning and replication
+* aws provided s3 browser UI to edit your code
+* s3 events can be use to trigger lua code cache purging
 
 Table of Contents
 =================

@@ -80,15 +80,11 @@ function _M.parseGithubRawLua(modname)
   -- capture path: https://raw.githubusercontent.com/
   local capturePath = "https://raw.githubusercontent.com/"
   if rawget(_G, __ghrawbase) == nil then
-    if string.find(modname, "github.com") then
-      local branch, user, repo, pathx, query = string.match(modname, "github.com[-]*([^/?#]*)/([^/]+)(/[^/]+)(/[^?#]*)(.*)")
+    -- only handle github.com for now
+    if string.find(modname, "github.com/") then
+      local user, repo, branch, pathx, query = string.match(modname, "github.com/([^/]+)(/[^/]+)/blob(/[^/]+)(/[^?#]*)(.*)")
       local path, file = string.match(pathx, "^(.*/)([^/]*)$")
-
-      if branch == "" then
-        branch = "master"
-      end
-
-      local base = string.format("%s%s%s/%s%s", capturePath, user, repo, branch, path)
+      local base = string.format("%s%s%s%s%s", capturePath, user, repo, branch, path)
 
       -- convert period to folder before return
       return base, string.gsub(string.gsub(file, "%.lua$", ""), '%.', "/") .. ".lua", query

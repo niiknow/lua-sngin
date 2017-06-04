@@ -1,154 +1,151 @@
--- original: https://github.com/grosskur/lua-resty-aws
+-- https://github.com/paragasu/lua-resty-aws-auth
+-- modified version of above using out own crypto
 
-local cjson = require 'cjson'
-local resty_hmac = require 'resty.hmac'
-local resty_sha256 = require 'resty.sha256'
-local str = require 'resty.string'
+local ngin            = require "sngin.ngin"
+local crypto          = ngin.crypto
 
-local setmetatable = setmetatable
-local error = error
+local aws_key, aws_secret, aws_region, aws_service, aws_host
+local iso_date, iso_tz, cont_type, req_method, req_path, req_body
 
-local _M = { _VERSION = '0.1.0' }
+local _M = {
+  _VERSION = '0.1.0'
+}
+
 local mt = { __index = _M }
 
-local function get_credentials ()
-  local access_key = os.getenv('AWS_ACCESS_KEY_ID')
-  local secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
-  if access_key ~= nil and secret_key ~= nil then
-    return {
-      access_key = access_key,
-      secret_key = secret_key
-    }
-  end
+-- init new aws auth
+function _M.new(self, config)
+  aws_key     = config.aws_key
+  aws_secret  = config.aws_secret
+  aws_region  = config.aws_region
+  aws_service = config.aws_service
+  aws_host    = config.aws_host
+  cont_type   = config.content_type   or "application/x-www-form-urlencoded" 
+  req_method  = config.request_method or "POST"
+  req_path    = config.request_path   or "/"
+  req_body    = config.request_body
 
-  local res = ngx.location.capture('/_meta-data/iam/security-credentials/')
-  if res.status ~= ngx.HTTP_OK then
-    return
-  end
+  -- set default time
+  self:set_iso_date(ngx.time())
+  return setmetatable(_M, mt)
+end
 
-  res = ngx.location.capture('/_meta-data/iam/security-credentials/' .. res.body)
-  if res.status ~= ngx.HTTP_OK then
-    return
-  end
 
-  local creds = cjson.decode(res.body)
-  if creds['Type'] ~= 'AWS-HMAC' or creds['Code'] ~= 'Success' then
-    return
-  end
+-- required for testing
+function _M.set_iso_date(self, microtime)
+  iso_date = os.date('!%Y%m%d', microtime)
+  iso_tz   = os.date('!%Y%m%dT%H%M%SZ', microtime)
+end
 
-  return {
-    access_key = creds['AccessKeyId'],
-    secret_key = creds['SecretAccessKey'],
-    security_token = creds['Token']
+
+-- create canonical headers
+-- header must be sorted asc
+function _M.get_canonical_header(self)
+  local h = {
+    'content-type:' .. cont_type,
+    'host:' .. aws_host,
+    'x-amz-date:' .. iso_tz
   }
+  return table.concat(h, '\n')
 end
 
-local function get_iso8601_basic(timestamp)
-  return os.date('!%Y%m%dT%H%M%SZ', timestamp)
+
+function _M.get_signed_request_body(self)
+  local params = req_body
+  if type(req_body) == 'table' then
+    table.sort(params)
+    params = ngx.encode_args(params)
+  end
+  local digest = self:get_sha256_digest(params or '')
+  return string.lower(digest) -- hash must be in lowercase hex string
 end
 
-local function get_iso8601_basic_short(timestamp)
-  return os.date('!%Y%m%d', timestamp)
-end
 
-local function get_derived_signing_key(keys, timestamp, region, service)
-  local h = resty_hmac:new()
-  k_date = h:digest('sha256', 'AWS4' .. keys['secret_key'], get_iso8601_basic_short(timestamp), true)
-  k_region = h:digest('sha256', k_date, region, true)
-  k_service = h:digest('sha256', k_region, service, true)
-  return h:digest('sha256', k_service, 'aws4_request', true)
-end
-
-local function get_cred_scope(timestamp, region, service)
-  return get_iso8601_basic_short(timestamp)
-    .. '/' .. region
-    .. '/' .. service
-    .. '/aws4_request'
-end
-
-local function get_signed_headers()
-  return 'host;x-amz-content-sha256;x-amz-date'
-end
-
-local function get_sha256_digest(s)
-  local h = resty_sha256:new()
-  h:update(s or '')
-  return str.to_hex(h:final())
-end
-
-local function get_hashed_canonical_request(timestamp, host, uri)
-  local digest = get_sha256_digest(ngx.var.request_body)
-  local canonical_request = ngx.var.request_method .. '\n'
-    .. uri .. '\n'
-    .. '\n'
-    .. 'host:' .. host .. '\n'
-    .. 'x-amz-content-sha256:' .. digest .. '\n'
-    .. 'x-amz-date:' .. get_iso8601_basic(timestamp) .. '\n'
-    .. '\n'
-    .. get_signed_headers() .. '\n'
-    .. digest
-  return get_sha256_digest(canonical_request)
-end
-
-local function get_string_to_sign(timestamp, region, service, host, uri)
-  return 'AWS4-HMAC-SHA256\n'
-    .. get_iso8601_basic(timestamp) .. '\n'
-    .. get_cred_scope(timestamp, region, service) .. '\n'
-    .. get_hashed_canonical_request(timestamp, host, uri)
-end
-
-local function get_signature(derived_signing_key, string_to_sign)
-  local h = resty_hmac:new()
-  return h:digest('sha256', derived_signing_key, string_to_sign, false)
-end
-
-local function get_authorization(keys, timestamp, region, service, host, uri)
-  local derived_signing_key = get_derived_signing_key(keys, timestamp, region, service)
-  local string_to_sign = get_string_to_sign(timestamp, region, service, host, uri)
-  local auth = 'AWS4-HMAC-SHA256 '
-    .. 'Credential=' .. keys['access_key'] .. '/' .. get_cred_scope(timestamp, region, service)
-    .. ', SignedHeaders=' .. get_signed_headers()
-    .. ', Signature=' .. get_signature(derived_signing_key, string_to_sign)
-  return auth
-end
-
-local function get_service_and_region(host)
-  local patterns = {
-    {'s3.amazonaws.com', 's3', 'us-east-1'},
-    {'s3-external-1.amazonaws.com', 's3', 'us-east-1'},
-    {'s3%-([a-z0-9-]+)%.amazonaws%.com', 's3', nil}
+-- get canonical request
+-- https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
+function _M.get_canonical_request(self)
+  local signed_header = 'content-type;host;x-amz-date'
+  local canonical_header = self:get_canonical_header()
+  local signed_body = self:get_signed_request_body()
+  local param  = {
+    req_method,
+    req_path,
+    '', -- canonical querystr
+    canonical_header,
+    '',   -- required
+    signed_header,
+    signed_body
   }
-  for i,data in ipairs(patterns) do
-    local region = host:match(data[1])
-    if region ~= nil and data[3] == nil then
-      return data[2], region
-    elseif region ~= nil then
-      return data[2], data[3]
-    end
-  end
-  return nil, nil
+  local canonical_request = table.concat(param, '\n')
+  return self:get_sha256_digest(canonical_request)
 end
 
-local function aws_set_headers(host, uri)
-  local creds = get_credentials()
-  local timestamp = tonumber(ngx.time())
-  local service, region = get_service_and_region(host)
-  local auth = get_authorization(creds, timestamp, region, service, host, uri)
 
-  ngx.req.set_header('Authorization', auth)
-  ngx.req.set_header('Host', host)
-  ngx.req.set_header('x-amz-date', get_iso8601_basic(timestamp))
-  if creds['security_token'] ~= nil then
-    ngx.req.set_header('x-amz-security-token', creds['security_token'])
-  end
+-- generate sha256 from the given string
+function _M.get_sha256_digest(self, s)
+  return crypto.sha256(s).hex()
 end
 
-local function s3_set_headers(host, uri)
-  aws_set_headers(host, uri)
-  ngx.req.set_header('x-amz-content-sha256', get_sha256_digest(ngx.var.request_body))
+
+function _M.hmac(self, secret, message)
+  return crypto.hmac(secret, message, "sha256")
 end
 
-_M.aws_set_headers = aws_set_headers
-_M.s3_set_headers = s3_set_headers
+
+-- get signing key
+-- https://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
+function _M.get_signing_key(self)
+  local  k_date    = self:hmac('AWS4' .. aws_secret, iso_date).digest()
+  local  k_region  = self:hmac(k_date, aws_region).digest()
+  local  k_service = self:hmac(k_region, aws_service).digest()
+  local  k_signing = self:hmac(k_service, 'aws4_request').digest()
+  return k_signing
+end
+
+
+-- get string
+function _M.get_string_to_sign(self)
+  local param = { iso_date, aws_region, aws_service, 'aws4_request' }
+  local cred  = table.concat(param, '/')
+  local req   = self:get_canonical_request()
+  return table.concat({ 'AWS4-HMAC-SHA256', iso_tz, cred, req}, '\n')
+end
+
+
+-- generate signature
+function _M.get_signature(self)
+  local  signing_key = self:get_signing_key()
+  local  string_to_sign = self:get_string_to_sign()
+  return self:hmac(signing_key, string_to_sign).hex()
+end
+
+
+-- get authorization string
+-- x-amz-content-sha256 required by s3
+function _M.get_authorization_header(self)
+  local  param = { aws_key, iso_date, aws_region, aws_service, 'aws4_request' }
+  local header = {
+    'AWS4-HMAC-SHA256 Credential=' .. table.concat(param, '/'),
+    'SignedHeaders=content-type;host;x-amz-date',
+    'Signature=' .. self:get_signature()
+  }
+  return table.concat(header, ', ')
+end
+
+
+-- update ngx.request.headers
+-- will all the necessary aws required headers
+-- for authentication
+function _M.set_ngx_auth_headers(self)
+  ngx.req.set_header('Authorization', self.get_authorization_header())
+  ngx.req.set_header('X-Amz-Date', timestamp)
+end
+
+
+-- get the current timestamp in iso8601 basic format
+function _M.get_date_header()
+  return iso_tz
+end
+
 
 return _M

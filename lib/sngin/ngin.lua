@@ -111,4 +111,10 @@ function _M.require_new(modname)
 	return nil, "unable to load module [" .. modname .. "]"
 end
 
+
+function _M.log(msg)
+  -- ngx capture to /__log
+  return nil
+end
+
 return _M
