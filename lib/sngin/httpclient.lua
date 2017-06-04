@@ -177,14 +177,21 @@ function _M.request(options)
   opts.query = url.query
 
   authHeader(opts)
-  local args = { method = opts.method, body = opts.body, headers = opts.headers, ssl_verify = false }
+  local args = { 
+    method = opts.method, 
+    body = opts.body, 
+    headers = opts.headers, 
+    ssl_verify = false, 
+    capture_url = opts.capture_url,
+    capture_variable = opts.capture_variable
+  }
 
   -- lua-resty-http issue, we have to reappend query to url
   if query then
     base_uri = base_uri .. '?' .. query
   end
 
-  if (opts.use_capture or opts.capture_url) then
+  if (opts.capture_url or opts.use_capture) then
     return ngx_request(base_uri, args)
   end
 

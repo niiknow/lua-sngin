@@ -72,7 +72,7 @@ _M.crypto = crypto
 _M.dump = plpretty.write
 
 local function loadngx(url)
-    local res = httpc.request({ url = url, method = "GET", capture_uri = "__githubraw" })
+    local res = httpc.request({ url = url, method = "GET", capture_url = "/__githubraw" })
     if res.statuscode == 200 then return res.content end
     return "nil"
 end
