@@ -11,6 +11,7 @@ local sandbox           = require "sngin.sandbox"
 local ngin              = require "sngin.ngin"
 local httpc             = require "sngin.httpclient"
 local utils             = require "sngin.utils"
+local crypto            = require "sngin.crypto"
 
 function _M.init(options)
   local opts = options or {}
@@ -71,20 +72,7 @@ function _M.init(options)
   local rsp, err = ngx.location.capture(capture_url, req_t)
   if (rsp ~= nil) then
     if (rsp.status == 200) then
-      -- process response
-     local env = {
-        http = httpc,
-        require = ngin.require_new,
-        base64 = ngin.base64,
-        json = ngin.json,
-        dump = ngin.dump,
-        log = ngin.log,
-        utils = utils,
-        loadstring = ngin.loadstring_new,
-        __ghrawbase = __ghrawbase
-      }
-
-      local newEnv = sandbox.build_env(_G or _ENV, env, sandbox.whitelist)
+      local newEnv = ngin.getSandboxEnv()
       local ok, first, second = sandbox.eval(rsp.body, nil, newEnv)
       if ok then
         return ngin.handleResponse(first, second)

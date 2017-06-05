@@ -23,7 +23,7 @@ local function hmac_wrapper(key, str, hasher)
       return hmac.digest(hasher, str, key, true)
     end,
     hex = function()
-      hmac.digest(hasher, str, key, false)
+      return hmac.digest(hasher, str, key, false)
     end
   }
 

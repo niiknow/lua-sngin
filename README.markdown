@@ -68,7 +68,7 @@ Description
 ===========
 
 This library requires an nginx build with OpenSSL,
-the [ngx_lua module](http://wiki.nginx.org/HttpLuaModule), and [LuaJIT 2.0](http://luajit.org/luajit.html).
+the [ngx_lua module](http://wiki.nginx.org/HttpLuaModule), and [LuaJIT 2.1](http://luajit.org/luajit.html).
 
 Synopsis
 ========
@@ -97,5 +97,15 @@ Mid 2015 Macbook Pro i7 2.5ghz macOS Sierra 10.15.5
 Docker 1 core - Hello World
 Local - 2365 req/s
 Github root - 517 req/s
+
+# TODO
+- [ ] caching strategy for ease of clearing cache 
+- [ ] authentication - at least with just jwt
+- [ ] logging
+- [ ] smtp
+- [ ] email notification
+- [ ] sns notification
+- [ ] data persistence
+- [ ] user caching
 
 # MIT

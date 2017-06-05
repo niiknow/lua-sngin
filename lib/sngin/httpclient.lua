@@ -1,4 +1,6 @@
--- https://github.com/pintsized/lua-resty-http
+-- derived from https://github.com/pintsized/lua-resty-http
+-- add ability to use capture and authenticate with oauth1.0
+
 local http_handle       = require "resty.http"
 local utils             = require "sngin.utils"
 

@@ -23,8 +23,6 @@ _M.json = {
   decode = cjson_safe.decode
 }
 
-_M.crypto = crypto
-
 _M.dump = plpretty.write
 
 local function loadngx(url)
@@ -33,20 +31,24 @@ local function loadngx(url)
     return "nil"
 end
 
-function _M.require_new(modname)
-	local env = {
-		http = httpc,
-		require = _M.require_new,
-		base64 = _M.base64,
-		json = _M.json,
-		dump = _M.dump,
-		log = _M.log,
-		utils = utils,
-		loadstring = _M.loadstring_new,
+function _M.getSandboxEnv()
+  local env = {
+    http = httpc,
+    require = _M.require_new,
+    base64 = _M.base64,
+    json = _M.json,
+    dump = _M.dump,
+    log = _M.log,
+    utils = utils,
+    loadstring = _M.loadstring_new,
+    crypto = crypto,
     __ghrawbase = __ghrawbase
-	}
-	local newEnv = sandbox.build_env(_G or _ENV, env, sandbox.whitelist)
+  }
+  return sandbox.build_env(_G or _ENV, env, sandbox.whitelist)
+end
 
+function _M.require_new(modname)
+  local newEnv = _M.getSandboxEnv()
 	if newEnv[modname] then
 		return newEnv[modname]
   else
@@ -56,7 +58,7 @@ function _M.require_new(modname)
       -- return code
 
       -- todo: redo sandbox to cache compiled code somewhere
-      env.__ghrawbase = base
+      newEnv.__ghrawbase = base
       local ok, ret = sandbox.eval(code, nil, newEnv)
       if ok then
         return ret
