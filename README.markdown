@@ -93,10 +93,11 @@ Synopsis
 
 # Benchmarks
 ## bench1
-Mid 2015 Macbook Pro i7 2.5ghz macOS Sierra 10.15.5
-Docker 1 core - Hello World
-Local - 2365 req/s
-Github root - 517 req/s
+* Mid 2015 Macbook Pro i7 2.5ghz macOS Sierra 10.15.5
+* Docker 1 core - Hello World
+* Local - 2365 req/s
+* Github root - 517 req/s
+* NodeJs Directly - 6498 req/s
 
 # TODO
 - [ ] caching strategy for ease of clearing cache 
