@@ -7,7 +7,7 @@ my $pwd = cwd();
 
 $ENV{TEST_NGINX_RESOLVER} = '8.8.8.8';
 $ENV{TEST_COVERAGE} ||= 0;
-$ENV{SNGIN_APP_PATH} = 'dockerfiles/app/codecache';
+$ENV{SNGIN_APP_PATH} = 't/servroot/html';
 
 our $HttpConfig = qq{
     lua_package_path "$pwd/lib/?.lua;/usr/local/share/lua/5.1/?.lua;;";

@@ -179,8 +179,6 @@ function _M.getCodeFromS3(options)
 
   -- cleanup path, remove double forward slash and double periods from path
   full_path                     = string.gsub(string.gsub(full_path, "%.%.", ""), "//", "/")
-  ngx.say(full_path)
-  ngx.exit(0)
 
   -- setup config
   local config = {

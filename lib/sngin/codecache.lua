@@ -6,7 +6,6 @@ local httpc             = require "sngin.httpclient"
 local ngin              = require "sngin.ngin"
 local sandbox           = require "sngin.sandbox"
 local utils             = require "sngin.utils"
-local mkdirp            = require "mkdirp"
 local plpath            = require "pl.path"
 
 local code_cache_size   = ngin.config.sngin_codecache_size
@@ -61,9 +60,9 @@ NOTE: urlHandler should use capture to simulate debounce
 		if (valHolder.fileMod ~= nil) then
 			opts["last_modified"] = os.date("%c", valHolder.fileMod)
 		end
-	--	ngx.say(valHolder.localPath)
-	--	ngx.exit(0)
-	--	mkdirp(valHolder.localPath .. "/")
+
+	    os.execute('mkdir -p "' .. valHolder.localPath .. '"')
+
 		-- if remote return 200
 		local rsp, err = urlHandler(opts)
 
