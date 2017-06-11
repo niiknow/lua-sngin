@@ -171,13 +171,16 @@ function _M.getCodeFromS3(options)
   -- get options or default to current request host and uri
   local host                    = opts.host or ngx.var.host
   local path                    = opts.uri or ngx.var.uri
+  local url                     = opts.url or string.format("%s/%s/index.lua", host, path)
 
   -- ngx.log(ngx.ERR, "mydebug: " .. secret_key)
-  local cleanPath, querystring  = string.match(path, "([^?#]*)(.*)")
-  local full_path               = string.format("/%s/%s/%s/index.lua", aws_s3_code_path, host, cleanPath)
+  local cleanPath, querystring  = string.match(url, "([^?#]*)(.*)")
+  local full_path               = string.format("/%s/%s", aws_s3_code_path, cleanPath)
 
   -- cleanup path, remove double forward slash and double periods from path
   full_path                     = string.gsub(string.gsub(full_path, "%.%.", ""), "//", "/")
+  ngx.say(full_path)
+  ngx.exit(0)
 
   -- setup config
   local config = {

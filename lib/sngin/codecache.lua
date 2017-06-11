@@ -61,9 +61,9 @@ NOTE: urlHandler should use capture to simulate debounce
 		if (valHolder.fileMod ~= nil) then
 			opts["last_modified"] = os.date("%c", valHolder.fileMod)
 		end
-		ngx.say(valHolder.localPath)
-		ngx.exit(0)
-		mkdirp(valHolder.localPath .. "/")
+	--	ngx.say(valHolder.localPath)
+	--	ngx.exit(0)
+	--	mkdirp(valHolder.localPath .. "/")
 		-- if remote return 200
 		local rsp, err = urlHandler(opts)
 
@@ -101,6 +101,7 @@ NOTE: urlHandler should use capture to simulate debounce
 			localFullPath = fileBasePath .. "/index.lua"
 
 			valHolder = {
+			    url = string.format(url .. "/index.lua"),
 				localPath = fileBasePath,
 				localFullPath = localFullPath,
 				lastCheck = os.time(),
