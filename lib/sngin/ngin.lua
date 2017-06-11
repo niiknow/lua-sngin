@@ -10,6 +10,8 @@ local aws_s3_code_path  = os.getenv("AWS_S3_CODE_PATH")
 local aws_region        = os.getenv("AWS_DEFAULT_REGION")
 local access_key        = os.getenv("AWS_ACCESS_KEY_ID")
 local secret_key        = os.getenv("AWS_SECRET_ACCESS_KEY")
+local codecache_size    = os.getenv("SNGIN_CODECACHE_SIZE")
+local sngin_app_path    = os.getenv("SNGIN_APP_PATH")
 
 local loadfile          = loadfile
 local loadstring        = loadstring
@@ -21,6 +23,15 @@ local escape_uri        = ngx.escape_uri
 local parseghrlua       = utils.parseGithubRawLua
 
 local _M = {}
+
+_M.config = {
+  aws_region = aws_region,
+  aws_access_key = access_key,
+  aws_secret_key = secret_key,
+  aws_s3_code_path = aws_s3_code_path,
+  sngin_codecache_size = codecache_size,
+  sngin_app_path = sngin_app_path
+}
 
 _M.base64 = {
   encode = encode_base64,
@@ -183,6 +194,10 @@ function _M.getCodeFromS3(options)
   local bh = ngx.req.get_headers()
   for k, v in pairs(bh) do
     ngx.req.clear_header(k)
+  end
+
+  if (options.last_modified) then
+    ngx.req.set_header("If-Modified-Since", options.last_modified)
   end
 
   local uri = string.format("https://%s%s", config.aws_host, config.request_path)

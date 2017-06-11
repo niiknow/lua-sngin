@@ -5,7 +5,7 @@ local ngin              = require "sngin.ngin"
 local cc                = require "sngin.codecache"
 local _M  = {}
 
-local codeCache = cc:new("/Users/tomn/Desktop/work/niiknow/lua-sngin/dockerfiles/app/codecache");
+local codeCache = cc:new(ngin.config.sngin_app_path)
 
 function _M.init()
   local fn = codeCache.get(string.format("%s/%s", ngx.var.host, ngx.var.uri))

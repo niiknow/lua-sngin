@@ -7,6 +7,8 @@ my $pwd = cwd();
 
 $ENV{TEST_NGINX_RESOLVER} = '8.8.8.8';
 $ENV{TEST_COVERAGE} ||= 0;
+$ENV{SNGIN_APP_PATH} = 'dockerfiles/app/codecache';
+
 our $HttpConfig = qq{
     lua_package_path "$pwd/lib/?.lua;/usr/local/share/lua/5.1/?.lua;;";
     error_log logs/error.log debug;
@@ -26,11 +28,12 @@ no_long_string();
 run_tests();
 
 __DATA__
-=== TEST 1: github require
+=== TEST 1: aws s3 file
 --- main_config
     env AWS_ACCESS_KEY_ID;
     env AWS_SECRET_ACCESS_KEY;
     env AWS_S3_CODE_PATH;
+    env SNGIN_APP_PATH;
 
 --- http_config eval: $::HttpConfig
 --- config

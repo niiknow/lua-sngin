@@ -6,6 +6,10 @@ local httpc             = require "sngin.httpclient"
 local ngin              = require "sngin.ngin"
 local sandbox           = require "sngin.sandbox"
 local utils             = require "sngin.utils"
+local mkdirp            = require "mkdirp"
+local plpath            = require "pl.path"
+
+local code_cache_size   = ngin.config.sngin_codecache_size
 local myUrlHandler      = ngin.getCodeFromS3
 
 local _M = {}
@@ -20,7 +24,7 @@ the strategy of this cache is to:
 -- when we don't have the file, check every x seconds - limit by proxy
 ]]
 function _M.new(self, localBasePath, ttl, codeHandler)
-	local codeCache = lru.new(10000)
+	local codeCache = lru.new(code_cache_size or 10000)
 
     local urlHandler = codeHandler or myUrlHandler
     local defaultTtl = ttl or 3600 -- default to 1 hours
@@ -31,6 +35,8 @@ function _M.new(self, localBasePath, ttl, codeHandler)
     	defaultTtl = 120
     end
 
+    localBasePath = plpath.abspath(localBasePath)
+    --ngx.say("hi")
 --[[
 if value holder is nil, initialize value holder
 if value is nil or ttl has expired
@@ -48,21 +54,33 @@ if value is nil or ttl has expired
 NOTE: urlHandler should use capture to simulate debounce
 ]]
 	local function doCheckRemoteFile(valHolder)
+		local opts = {
+			url = valHolder.url
+		}
+
+		if (valHolder.fileMod ~= nil) then
+			opts["last_modified"] = os.date("%c", valHolder.fileMod)
+		end
+		ngx.say(valHolder.localPath)
+		ngx.exit(0)
+		mkdirp(valHolder.localPath .. "/")
 		-- if remote return 200
-		local rsp, err = urlHandler(valHolder.url)
+		local rsp, err = urlHandler(opts)
 
 		if (rsp.status == 200) then
+			-- ngx.say(valHolder.localPath)
 		    -- write file, load data
-			local myFile = io.open(valHolder.localPath, "w")
+
+			local myFile = io.open(valHolder.localFullPath, "w")
 			myFile:write(rsp.body)
 			myFile:close()
 
-			valHolder.fileMod = lfs.attributes (valHolder.localPath, "modification")
+			valHolder.fileMod = lfs.attributes (valHolder.localFullPath, "modification")
 			valHolder.value = sandbox.loadstring(rsp.body, nil, ngin.getSandboxEnv())
 		elseif (rsp.status == 404) then
 		    -- on 404 - set nil and delete local file
 		    valHolder.value = nil
-		    os.remove(valHolder.localPath)
+		    os.remove(valHolder.localFullPath)
 		end
 
 		-- on other error - do nothing
@@ -74,11 +92,17 @@ NOTE: urlHandler should use capture to simulate debounce
 		-- initialize valHolder
 		if (valHolder == nil) then
 			-- convert remoteUrl to localFullPath
-			local start, domainAndPath, query = string.match(url, "(//*)([^?#]*)(.*)")
-			local localFullPath = string.gsub(localBasePath .. "/" .. domainAndPath, "//", "/")
-			localFullPath = string.gsub(localFullPath, "/+$", "")
+			-- expect url to be domain/path?query
+			local domainAndPath, query = string.match(url, "([^?#]*)(.*)")
+			domainAndPath = string.gsub(string.gsub(domainAndPath, "http://", ""), "https://", "")
+
+			local fileBasePath = string.gsub(localBasePath .. "/" .. domainAndPath, "%.%.", "")
+			fileBasePath = string.gsub(fileBasePath, "//", "/")
+			localFullPath = fileBasePath .. "/index.lua"
+
 			valHolder = {
-				localPath = localFullPath,
+				localPath = fileBasePath,
+				localFullPath = localFullPath,
 				lastCheck = os.time(),
 				fileMod = lfs.attributes (localFullPath, "modification")
 			}
@@ -86,10 +110,10 @@ NOTE: urlHandler should use capture to simulate debounce
 
 		if (valHolder.value == nil or (valHolder.lastCheck < (os.time() - defaultTtl))) then
 			-- load file if it exists
-			valHolder.fileMod = lfs.attributes (valHolder.localPath, "modification")
+			valHolder.fileMod = lfs.attributes (valHolder.localFullPath, "modification")
 			if (valHolder.fileMod ~= nil) then
 
-				valHolder.value = sandbox.loadfile(valHolder.localPath, ngin.getSandboxEnv())
+				valHolder.value = sandbox.loadfile(valHolder.localFullPath, ngin.getSandboxEnv())
 
 			    -- set it back immediately for the next guy
 			    -- set next ttl
