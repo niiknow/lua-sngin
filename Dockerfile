@@ -107,6 +107,7 @@ RUN \
     && DEBIAN_FRONTEND=noninteractive apt-get autoremove -y \
     && ln -sf /dev/stdout /usr/local/openresty/nginx/logs/access.log \
     && ln -sf /dev/stderr /usr/local/openresty/nginx/logs/error.log \
+    && echo "\n\n* soft nofile 300000\n* hard nofile 300000\n" >> /etc/security/limits.conf \
     && mkdir -p /app/lib/sngin
 
 # Add additional binaries into PATH for convenience

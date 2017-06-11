@@ -1,18 +1,19 @@
 # Server globals
-user                    www-data;
+user                                www-data;
 
 # use 1 for better benchmark result
-worker_processes        1;
+worker_processes                    1;
 
-# worker_processes        auto;
+# worker_processes                   auto;
 
-error_log               /usr/local/openresty/nginx/logs/error.log warn;
-pid                     /var/run/nginx.pid;
+error_log                           /usr/local/openresty/nginx/logs/error.log warn;
+pid                                 /var/run/nginx.pid;
 
 
+worker_rlimit_nofile                200000;
 # Worker config
 events {
-    worker_connections              8192;
+    worker_connections              10000;
     use                             epoll;
     multi_accept                    on;
 }
@@ -30,7 +31,7 @@ http {
     client_max_body_size            256m;
     large_client_header_buffers     4   8k;
     send_timeout                    30;
-    keepalive_timeout               60 60;
+    keepalive_timeout               300 300;
     reset_timedout_connection       on;
     server_tokens                   off;
     server_name_in_redirect         off;
@@ -43,6 +44,7 @@ http {
                                     '"$http_user_agent" "$http_x_forwarded_for"';
 
     access_log                      /usr/local/openresty/nginx/logs/access.log main;
+    # access_log                      off;
 
     # Mime settings
     include                         mime.types;
@@ -84,9 +86,9 @@ http {
 
 
     # Error pages
-    error_page          403          /error/403.html;
-    error_page          404          /error/404.html;
-    error_page          502 503 504  /error/50x.html;
+    error_page         403          /error/403.html;
+    error_page         404          /error/404.html;
+    error_page         502 503 504  /error/50x.html;
 
 
     # Cache bypass
@@ -97,38 +99,38 @@ http {
     }
 
     # File cache settings
-    open_file_cache                  max=20000 inactive=20s;
-    open_file_cache_valid            60s;
-    open_file_cache_min_uses         2;
-    open_file_cache_errors           off;
+    open_file_cache                 max=200000 inactive=300s;
+    open_file_cache_valid           300s;
+    open_file_cache_min_uses        2;
+    open_file_cache_errors          off;
 
 
     # Other settings
-    log_subrequest                   on;
-    rewrite_log                      on;
-    resolver                         8.8.8.8 8.8.4.4;
+    log_subrequest                  on;
+    rewrite_log                     on;
+    resolver                        8.8.8.8 8.8.4.4;
 
     # Needed to allow uri protocol slashes from being merged
-    merge_slashes                    off;
+    merge_slashes                   off;
 
 
-    proxy_redirect                   off;
-    proxy_set_header                 X-Real-IP       $remote_addr;
-    proxy_set_header                 X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_redirect                  off;
+    proxy_set_header                X-Real-IP       $remote_addr;
+    proxy_set_header                X-Forwarded-For $proxy_add_x_forwarded_for;
 
-    proxy_pass_header                Set-Cookie;
-    proxy_connect_timeout            30s;
-    proxy_send_timeout               30s;
-    proxy_read_timeout               30s;
-    proxy_ignore_headers             Expires Cache-Control;
-    proxy_temp_path                  /var/cache/nginx/temp;
+    proxy_pass_header               Set-Cookie;
+    proxy_connect_timeout           30s;
+    proxy_send_timeout              30s;
+    proxy_read_timeout              30s;
+    proxy_ignore_headers            Expires Cache-Control;
+    proxy_temp_path                 /var/cache/nginx/temp;
 
 
     # Lua settings
-    lua_package_path                 "/app/?.lua;/app/?/?.lua;/app/?/init.lua;/app/lib/?.lua;/app/lib/?/?.lua;/usr/local/openresty/site/lualib/?.lua;/usr/local/openresty/site/lualib/?/init.lua;/usr/local/openresty/lualib/?.lua;/usr/local/openresty/lualib/?/init.lua;/usr/local/openresty/lib/?.lua;;";
+    lua_package_path                "/app/?.lua;/app/?/?.lua;/app/?/init.lua;/app/lib/?.lua;/app/lib/?/?.lua;/usr/local/openresty/site/lualib/?.lua;/usr/local/openresty/site/lualib/?/init.lua;/usr/local/openresty/lualib/?.lua;/usr/local/openresty/lualib/?/init.lua;/usr/local/openresty/lib/?.lua;;";
 
-    lua_shared_dict                  sngin 10M;
-    lua_code_cache                   on;
+    lua_shared_dict                 sngin 10M;
+    lua_code_cache                  on;
 
     # see https://github.com/openresty/lua-resty-core
     init_by_lua '
@@ -136,6 +138,6 @@ http {
     ';
 
     # Wildcard include
-    include                          ../conf.d/*.conf;
-    include                          ../sites-enabled/*;
+    include                         ../conf.d/*.conf;
+    include                         ../sites-enabled/*;
 }

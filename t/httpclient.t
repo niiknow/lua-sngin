@@ -92,7 +92,7 @@ true
         content_by_lua '
             local http = require "sngin.httpclient"
             
-            local rsp = http.request({ url = "https://cdn.brickinc.net/", use_capture = true })
+            local rsp = http.request({ url = "https://niiknow.github.io", use_capture = true })
             ngx.say(rsp.statuscode .. "")
         ';
     }

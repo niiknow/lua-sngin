@@ -10,6 +10,13 @@ local table_pack = table.pack or function(...) return { n = select("#", ...), ..
 local table_unpack = table.unpack or unpack
 
 local has_52_compatible_load = _VERSION ~= "Lua 5.1" or tostring(assert):match "builtin"
+
+local loadf = function(file, env)
+    local chunk, err = loadfile(file)
+    if chunk and env then setfenv(chunk, env) end
+    return chunk, err
+end
+
 local load = has_52_compatible_load and load or function(code, name, mode, env)
     --mode = mode or "bt"
     if code:byte(1) == 27 --[[and not mode:match "b"]] then return nil, "can't load binary chunk" end
@@ -82,6 +89,18 @@ table.concat table.insert table.maxn table.pack table.remove table.sort table.un
 utf8.char utf8.charpattern utf8.codepoint utf8.codes utf8.len utf8.offset
 ]]
 
+_M.build_env = build_env
+function _M.loadstring(code, name, env)
+    assert(type(code) == "string", "code must be a string")
+    assert(type(env) == "table", "env is required")
+    local fn, err = load(code, name or "sandbox", "t", env)
+    -- todo handle null output to log
+    if fn == nil then
+        return nil, err
+    end
+    return fn, err
+end
+
 --- Executes Lua code in a sandbox.
 --
 -- @param code      Lua source code string.
@@ -90,34 +109,33 @@ utf8.char utf8.charpattern utf8.codepoint utf8.codes utf8.len utf8.offset
 -- @param whitelist String with a list of library functions imported from the global namespace (default `sandbox.whitelist`).
 -- @return          The `env` where the code was ran, or `nil` in case of error.
 -- @return          The chunk return values, or an error message.
-function _M.eval_safe(code, name, env, whitelist)
-    assert(type(code) == "string", "code must be a string")
+function _M.loadstring_safe(code, name, env, whitelist)
     env = build_env(_G or _ENV, env, whitelist or _M.whitelist)
-    local fn, err = load(code, name or "sandbox", "t", env)
-    if fn == nil then
-        return nil, err
-    end
-    local ok, ret = pack_1(pcall(fn))
-    if not ok then
-        return nil, ret[1]
-    end
-    return env, table_unpack(ret, 1, ret.n)
+    return _M.loadstring(code, name, env)
 end
 
-_M.build_env = build_env
-
-function _M.eval(code, name, env)
-    assert(type(code) == "string", "code must be a string")
-    assert(type(code) ~= "table", "env is required")
-    local fn, err = load(code, name or "sandbox", "t", env)
+function _M.loadfile(file, env)
+    assert(type(file) == "string", "file name is required")
+    assert(type(env) == "table", "env is required")
+    local fn, err = loadf(file, env)
+    -- todo handle null output to log
     if fn == nil then
         return nil, err
     end
+    return fn, err
+end
+
+function _M.loadfile_safe(file, env, whitelist)
+    env = build_env(_G or _ENV, env, whitelist or _M.whitelist)
+    return _M.loadfile(file, env)
+end
+
+function _M.exec(fn)
     local ok, ret = pack_1(pcall(fn))
     if not ok then
         return nil, ret[1]
     end
-    return env, table_unpack(ret, 1, ret.n)
+    return ret, nil
 end
 
 return _M

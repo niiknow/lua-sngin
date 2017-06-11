@@ -5,3 +5,4 @@ go
 t/servroot/
 reindex
 .DS_Store
+codecache/*
