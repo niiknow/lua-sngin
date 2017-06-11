@@ -4,7 +4,7 @@ local cjson_safe        = require "cjson.safe"
 local ngin              = require "sngin.ngin"
 
 local secret            = ngin.config.jwt_secret
-local ttl               = ngin.config.jwt_ttl or 60
+local ttl               = ngin.config.jwt_ttl or 600
 local _M = {}
 
 _M.validators = validators
@@ -12,7 +12,7 @@ _M.validators = validators
 function _M.sign(payload)
   local body = payload or {}
   body["iat"] = ngx.now()
-  body["exp"] = body["iat"] + ttl * 60
+  body["exp"] = body["iat"] + ttl
 
   local jwt_token = jwt:sign(secret, {
     header = { typ = "JWT", alg = "HS256" },

@@ -1,16 +1,26 @@
 # Server globals
 user                                www-data;
 
+# passthrough env vars
+env AWS_ACCESS_KEY_ID;
+env AWS_SECRET_ACCESS_KEY;
+env AWS_S3_CODE_PATH;
+env AWS_DEFAULT_REGION;
+env SNGIN_CODECACHE_SIZE;
+env SNGIN_APP_PATH;
+env JWT_SECRET;
+env JWT_TTL;
+
 # use 1 for better benchmark result
 worker_processes                    1;
 
 # worker_processes                   auto;
 
-error_log                           /usr/local/openresty/nginx/logs/error.log warn;
+error_log                           /usr/local/openresty/nginx/logs/error.log info;
 pid                                 /var/run/nginx.pid;
 
 
-worker_rlimit_nofile                200000;
+worker_rlimit_nofile                800000;
 # Worker config
 events {
     worker_connections              10000;
@@ -31,7 +41,7 @@ http {
     client_max_body_size            256m;
     large_client_header_buffers     4   8k;
     send_timeout                    30;
-    keepalive_timeout               300 300;
+    keepalive_timeout               65;
     reset_timedout_connection       on;
     server_tokens                   off;
     server_name_in_redirect         off;
@@ -107,8 +117,8 @@ http {
 
 
     # Other settings
-    log_subrequest                  on;
-    rewrite_log                     on;
+    log_subrequest                  off;
+    rewrite_log                     off;
     resolver                        8.8.8.8 8.8.4.4;
 
     # Needed to allow uri protocol slashes from being merged

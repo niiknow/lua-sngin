@@ -97,7 +97,7 @@ Environment Variables
 * SNGIN_CODECACHE_SIZE=10000 (number or lru cache items)
 * SNGIN_APP_PATH=/app (sngin app path)
 * JWT_SECRET=some-secret (jwt secret)
-* JWT_TTL=60 (ttl for token expires in seconds)
+* JWT_TTL=600 (ttl for token expires in seconds 600s/1h)
 
 Running
 =======
@@ -107,25 +107,30 @@ build:
 docker build -t niiknow/lua-sngin .
 ```
 
-run:
+run and debug:
 ```
-docker run -d --restart=always \
+docker run -it \
 -p 80:80 \
 --env AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
 --env AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
 --env see above for more env variables \
-niiknow\lua-sngin
+niiknow/lua-sngin
 ```
 
 
 Benchmarks
 ==========
-## bench1
-* Mid 2015 Macbook Pro i7 2.5ghz macOS Sierra 10.15.5
-* Docker 1 core - Hello World
-* Local - 2365 req/s
-* Github root - 517 req/s
-* NodeJs Directly - 6498 req/s
+Mid 2015 Macbook Pro i7 2.5ghz, macOS Sierra v10.15.5
+
+Docker 1 core bench simple output of string - Hello World
+
+## bench
+hey -n 10000 -c 100 http://localhost/a
+
+* nodejs - 8K
+* lua - 10K
+* lua github (not code cached) - 3.6K
+* lua s3 (code cached) - 5K 
 
 [Back to TOC](#table-of-contents)
 

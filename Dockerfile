@@ -107,7 +107,7 @@ RUN \
     && DEBIAN_FRONTEND=noninteractive apt-get autoremove -y \
     && ln -sf /dev/stdout /usr/local/openresty/nginx/logs/access.log \
     && ln -sf /dev/stderr /usr/local/openresty/nginx/logs/error.log \
-    && echo "\n\n* soft nofile 300000\n* hard nofile 300000\n" >> /etc/security/limits.conf \
+    && echo "\n\n* soft nofile 1000000\n* hard nofile 1000000\n" >> /etc/security/limits.conf \
     && mkdir -p /app/lib/sngin
 
 # Add additional binaries into PATH for convenience
@@ -131,8 +131,9 @@ RUN cd /usr/local/openresty/luajit/bin/ \
 
 RUN chown -R www-data:www-data /app; chmod -R 755 /app \
     && mkdir -p /tmp/nginx/temp \
+    && mkdir -p /tmp/nginx/cache/{ghr,code} \
     && chown -R www-data:www-data /tmp/nginx; chmod -R 755 /tmp/nginx
 
-EXPOSE 80
+EXPOSE 80 90 443
 
 CMD ["/sbin/my_init"]
