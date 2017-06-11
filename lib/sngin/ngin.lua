@@ -71,6 +71,7 @@ function _M.getSandboxEnv()
     loadstring = _M.loadstring_new,
     crypto = crypto,
     request = _M.getRequest(),
+    jwt = _M.jwt,
     __ghrawbase = __ghrawbase
   }
   return sandbox.build_env(_G or _ENV, env, sandbox.whitelist)

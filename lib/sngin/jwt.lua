@@ -9,7 +9,7 @@ local _M = {}
 
 _M.validators = validators
 
-function M.sign(payload)
+function _M.sign(payload)
   local body = payload or {}
   body["iat"] = ngx.now()
   body["exp"] = body["iat"] + ttl * 60
@@ -22,7 +22,7 @@ function M.sign(payload)
   return cjson.encode({token = jwt_token})
 end
 
-function M.auth(token, claim_spec)
+function _M.auth(token, claim_spec)
   if not token then
     ngx.log(ngx.WARN, err)
     ngx.exit(ngx.HTTP_UNAUTHORIZED)
@@ -52,4 +52,4 @@ function M.auth(token, claim_spec)
   ngx.header["X-Auth-UserId"] = jwt_obj.payload.sub
 end
 
-return M
+return _M
