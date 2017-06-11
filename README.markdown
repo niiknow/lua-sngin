@@ -5,6 +5,31 @@ lua-sngin - dynamic scripting for ngx_lua and LuaJIT
 
 Run your own multi-tenant lua microservice with code hosted on s3.  Everything by convention.
 
+Table of Contents
+=================
+
+* [Name](#name)
+* [Status](#status)
+* [Description](#description)
+* [Synopsis](#synopsis)
+* [Benchmarks](#benchmarks)
+
+Status
+======
+
+This library is considered experimental and still under active development.
+
+The API is still in flux and may change without notice.
+
+Description
+===========
+
+This library requires an nginx build with OpenSSL,
+the [ngx_lua module](http://wiki.nginx.org/HttpLuaModule), and [LuaJIT 2.1](http://luajit.org/luajit.html).
+
+Synopsis
+========
+
 * Hit the site: http://example.com/deletelog
 > Code from s3://bucketname/folder/example.com/deletelog/index.lua
 ```lua
@@ -49,49 +74,10 @@ return tableSixtyDaysAgo
 * aws provided s3 browser UI to edit your code
 * s3 events can be use to trigger lua code cache purging
 
-Table of Contents
-=================
+See wiki for more info...
 
-* [Name](#name)
-* [Status](#status)
-* [Description](#description)
-* [Synopsis](#synopsis)
-
-Status
-======
-
-This library is considered experimental and still under active development.
-
-The API is still in flux and may change without notice.
-
-Description
-===========
-
-This library requires an nginx build with OpenSSL,
-the [ngx_lua module](http://wiki.nginx.org/HttpLuaModule), and [LuaJIT 2.1](http://luajit.org/luajit.html).
-
-Synopsis
-========
-
-```lua
-    # nginx.conf:
-
-    lua_package_path "/path/to/lua-resty-string/lib/?.lua;;";
-
-    server {
-        location = /test {
-            content_by_lua_file conf/test.lua;
-        }
-    }
-
-    -- conf/test.lua:
-
-
-```
-
-[Back to TOC](#table-of-contents)
-
-# Benchmarks
+Benchmarks
+==========
 ## bench1
 * Mid 2015 Macbook Pro i7 2.5ghz macOS Sierra 10.15.5
 * Docker 1 core - Hello World
@@ -99,14 +85,6 @@ Synopsis
 * Github root - 517 req/s
 * NodeJs Directly - 6498 req/s
 
-# TODO
-- [ ] caching strategy for ease of clearing cache 
-- [ ] authentication - at least with just jwt
-- [ ] logging
-- [ ] smtp
-- [ ] email notification
-- [ ] sns notification
-- [ ] data persistence
-- [ ] user caching
+[Back to TOC](#table-of-contents)
 
 # MIT
