@@ -120,7 +120,7 @@ local function ngx_request(request_uri, opts)
   local rsp, err = ngx.location.capture(capture_url, req_t)
 
   if not rsp then
-      ngx.log(ngx.ERR, "failed to make request: ", err)
+      ngx.log(ngx.DEBUG, "failed to make request: ", err)
       return { statuscode = 0, err = err, req = opts }
   end
 
@@ -200,7 +200,7 @@ function _M.request(options)
   local rsp, err = httpc:request_uri(base_uri, args)
 
   if err then
-      ngx.log(ngx.ERR, "failed to make request: ", err)
+      ngx.log(ngx.DEBUG, "failed to make request: ", err)
       return { statuscode = 0, err = err, req = opts }
   end
   

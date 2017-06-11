@@ -12,6 +12,8 @@ local access_key        = os.getenv("AWS_ACCESS_KEY_ID")
 local secret_key        = os.getenv("AWS_SECRET_ACCESS_KEY")
 local codecache_size    = os.getenv("SNGIN_CODECACHE_SIZE")
 local sngin_app_path    = os.getenv("SNGIN_APP_PATH")
+local jwt_secret        = os.getenv("JWT_SECRET")
+local jwt_ttl           = os.getenv("JWT_TTL")
 
 local loadfile          = loadfile
 local loadstring        = loadstring
@@ -25,12 +27,14 @@ local parseghrlua       = utils.parseGithubRawLua
 local _M = {}
 
 _M.config = {
-  aws_region = aws_region,
+  aws_region = aws_region or 'us-east-1',
   aws_access_key = access_key,
   aws_secret_key = secret_key,
-  aws_s3_code_path = aws_s3_code_path,
-  sngin_codecache_size = codecache_size,
-  sngin_app_path = sngin_app_path
+  aws_s3_code_path = aws_s3_code_path or 'src',
+  sngin_codecache_size = codecache_size or 'bucket-name/src',
+  sngin_app_path = sngin_app_path or '/app',
+  jwt_secret = jwt_secret or 'please-change-me',
+  jwt_ttl = jwt_ttl or 60
 }
 
 _M.base64 = {
@@ -41,6 +45,10 @@ _M.base64 = {
 _M.json = {
   encode = cjson_safe.encode,
   decode = cjson_safe.decode
+}
+
+_M.jwt = {
+  
 }
 
 _M.dump = plpretty.write
@@ -148,14 +156,14 @@ function _M.handleResponse(first, second)
 
   if type(second) == 'table' then
     for k, v in pairs(second) do
-      ngx.req.set_header(k, v)
+      ngx.header[k] = v
+      if ('content-type' == string.lower(k)) then
+        contentType = nil
+      end
     end
-
-    if second["Content-Type"] == nil then
-      ngx.req.set_header('Content-Type', contentType)
-    end
-  else
-    ngx.req.set_header('Content-Type', contentType)
+  end
+  if (contentType ~= nil) then
+    ngx.header['Content-Type'] = contentType
   end
 
   ngx.status = statusCode

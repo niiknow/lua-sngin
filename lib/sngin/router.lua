@@ -17,4 +17,8 @@ function _M.init()
   end
 end
 
+function _M.purge()
+  -- todo: write purge logic
+end
+
 return _M

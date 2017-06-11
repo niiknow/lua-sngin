@@ -127,7 +127,9 @@ RUN cd /usr/local/openresty/luajit/bin/ \
     && ./luarocks install lua-api-gateway-aws 1.7.1-0 \
     && ./luarocks install penlight 1.4.1
 
-RUN chown -R www-data:www-data /app; chmod -R 755 /app
+RUN chown -R www-data:www-data /app; chmod -R 755 /app \
+    && mkdir -p /tmp/nginx/temp \
+    && chown -R www-data:www-data /tmp/nginx; chmod -R 755 /tmp/nginx \ 
 
 EXPOSE 80
 
