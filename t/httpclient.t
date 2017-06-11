@@ -83,7 +83,7 @@ GET /a2
 --- response_body
 true
 --- error_log
-[error]
+[debug]
 
 === TEST 3: Simple capture get.
 --- http_config eval: $::HttpConfig

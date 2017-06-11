@@ -52,49 +52,4 @@ function _M.encodeURIComponent(s)
    return s
 end
 
--- convert a table to query string
-function _M.qsencode(tab, delimiter, quote)
-  local query = {}
-  local q = quote or ''
-  local sep = delimiter or ''
-  local keys = {}
-  for k in pairs(tab) do
-    keys[#keys+1] = k
-  end
-  table.sort(keys)
-  for _,name in ipairs(keys) do
-    local value = tab[name]
-    name = _M.encodeURIComponent(tostring(name))
-
-    local value = _M.encodeURIComponent(tostring(value))
-    if value ~= "" then
-      query[#query+1] = string.format('%s=%s', name, q .. value .. q)
-    else
-      query[#query+1] = name
-    end  
-  end
-  return table.concat(query, sep)
-end
-
-function _M.parseGithubRawLua(modname)
-  -- capture path: https://raw.githubusercontent.com/
-  local capturePath = "https://raw.githubusercontent.com/"
-  if rawget(_G, __ghrawbase) == nil then
-    -- only handle github.com for now
-    if string.find(modname, "github.com/") then
-      local user, repo, branch, pathx, query = string.match(modname, "github%.com/([^/]+)(/[^/]+)/blob(/[^/]+)(/[^?#]*)(.*)")
-      local path, file = string.match(pathx, "^(.*/)([^/]*)$")
-      local base = string.format("%s%s%s%s%s", capturePath, user, repo, branch, path)
-
-      -- convert period to folder before return
-      return base, string.gsub(string.gsub(file, "%.lua$", ""), '%.', "/") .. ".lua", query
-    end
-  else
-    return __ghrawbase, string.gsub(string.gsub(modname, "%.lua$", ""), '%.', "/") .. ".lua", ""
-  end
-end
-
-function _M.parseS3Url(s3url)
-  local bucket, path = string.match(modname, "%.amazonaws%.com/([^/]+)(.*)")
-end
 return _M

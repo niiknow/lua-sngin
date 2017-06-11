@@ -116,7 +116,6 @@ ENV PATH=$PATH:/usr/local/openresty/luajit/bin/:/usr/local/openresty/nginx/sbin/
 
 ADD ./dockerfiles /
 ADD ./lib/sngin /app/lib/sngin/
-ADD ./lib/*.lua /app/
 RUN cd /usr/local/openresty/luajit/bin/ \
     && ./luarocks install lua-resty-http 0.08-0 \
     && ./luarocks install lua-resty-string 0.09-0 \
@@ -132,7 +131,7 @@ RUN cd /usr/local/openresty/luajit/bin/ \
 
 RUN chown -R www-data:www-data /app; chmod -R 755 /app \
     && mkdir -p /tmp/nginx/temp \
-    && chown -R www-data:www-data /tmp/nginx; chmod -R 755 /tmp/nginx \ 
+    && chown -R www-data:www-data /tmp/nginx; chmod -R 755 /tmp/nginx
 
 EXPOSE 80
 

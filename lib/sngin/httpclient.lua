@@ -10,15 +10,38 @@ local encode_args       = ngx.encode_args
 local decode_args       = ngx.decode_args
 local encode_base64     = ngx.encode_base64
 local ngx_re_match      = ngx.re.match
-local qsencode          = utils.qsencode
 local string_split      = utils.split
 local digest_hmac_sha1  = ngx.hmac_sha1
 local digest_md5        = ngx.md5
+local encodeURIComponent= utils.encodeURIComponent
 
 -- perf
 local setmetatable = setmetatable
 
 local _M = {}
+
+local function qsencode(tab, delimiter, quote)
+  local query = {}
+  local q = quote or ''
+  local sep = delimiter or ''
+  local keys = {}
+  for k in pairs(tab) do
+    keys[#keys+1] = k
+  end
+  table.sort(keys)
+  for _,name in ipairs(keys) do
+    local value = tab[name]
+    name = encodeURIComponent(tostring(name))
+
+    local value = encodeURIComponent(tostring(value))
+    if value ~= "" then
+      query[#query+1] = string.format('%s=%s', name, q .. value .. q)
+    else
+      query[#query+1] = name
+    end  
+  end
+  return table.concat(query, sep)
+end
 
 -- local functions: are executed and placed in sequential orders
 local function normalizeParameters(parameters, body, query)

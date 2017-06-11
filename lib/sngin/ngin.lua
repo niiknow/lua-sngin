@@ -22,7 +22,6 @@ local capture           = ngx.location.capture
 local encode_base64     = ngx.encode_base64
 local decode_base64     = ngx.decode_base64
 local escape_uri        = ngx.escape_uri
-local parseghrlua       = utils.parseGithubRawLua
 
 local _M = {}
 
@@ -59,16 +58,32 @@ local function loadngx(url)
     return "nil"
 end
 
+function _M.parseGithubRawLua(modname)
+  -- capture path: https://raw.githubusercontent.com/
+  local capturePath = "https://raw.githubusercontent.com/"
+  if rawget(_G, __ghrawbase) == nil then
+    -- only handle github.com for now
+    if string.find(modname, "github.com/") then
+      local user, repo, branch, pathx, query = string.match(modname, "github%.com/([^/]+)(/[^/]+)/blob(/[^/]+)(/[^?#]*)(.*)")
+      local path, file = string.match(pathx, "^(.*/)([^/]*)$")
+      local base = string.format("%s%s%s%s%s", capturePath, user, repo, branch, path)
+
+      -- convert period to folder before return
+      return base, string.gsub(string.gsub(file, "%.lua$", ""), '%.', "/") .. ".lua", query
+    end
+  else
+    return __ghrawbase, string.gsub(string.gsub(modname, "%.lua$", ""), '%.', "/") .. ".lua", ""
+  end
+end
+
 function _M.getSandboxEnv()
   local env = {
     http = httpc,
     require = _M.require_new,
     base64 = _M.base64,
     json = _M.json,
-    dump = _M.dump,
     log = _M.log,
     utils = utils,
-    loadstring = _M.loadstring_new,
     crypto = crypto,
     request = _M.getRequest(),
     jwt = _M.jwt,
@@ -101,7 +116,7 @@ function _M.require_new(modname)
 	if newEnv[modname] then
 		return newEnv[modname]
   else
-    local base, file, query = parseghrlua(modname)
+    local base, file, query = _M.parseGithubRawLua(modname)
     if base then
       local code = loadngx(base .. file .. query)
       -- return code

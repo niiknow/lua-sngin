@@ -5,6 +5,17 @@ lua-sngin - dynamic scripting for ngx_lua and LuaJIT
 
 Run your own multi-tenant lua microservice with code hosted on s3.  Everything by convention.
 
+Note
+====
+
+Currently, I'm a one man operation so updates may be slow.  Please feel free to enter issue and create pull requests.  
+
+## Project Philosophy
+1. For each feature
+2. Get it to work
+3. Write tests and optimize
+4. Repeat
+
 Table of Contents
 =================
 
@@ -12,6 +23,7 @@ Table of Contents
 * [Status](#status)
 * [Description](#description)
 * [Synopsis](#synopsis)
+* [Running](#running)
 * [Benchmarks](#benchmarks)
 
 Status
@@ -76,6 +88,36 @@ return tableSixtyDaysAgo
 
 See wiki for more info...
 
+Environment Variables
+=====================
+* AWS_ACCESS_KEY_ID=your access id
+* AWS_SECRET_ACCESS_KEY=your access key
+* AWS_S3_CODE_PATH=bucket-name/src-folder (bucket name/follow by base folder)
+* AWS_DEFAULT_REGION=us-east-1
+* SNGIN_CODECACHE_SIZE=10000 (number or lru cache items)
+* SNGIN_APP_PATH=/app (sngin app path)
+* JWT_SECRET=some-secret (jwt secret)
+* JWT_TTL=60 (ttl for token expires in seconds)
+
+Running
+=======
+
+build:
+```
+docker build -t niiknow/lua-sngin .
+```
+
+run:
+```
+docker run -d --restart=always \
+-p 80:80 \
+--env AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
+--env AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
+--env see above for more env variables \
+niiknow\lua-sngin
+```
+
+
 Benchmarks
 ==========
 ## bench1
@@ -86,5 +128,9 @@ Benchmarks
 * NodeJs Directly - 6498 req/s
 
 [Back to TOC](#table-of-contents)
+
+TODO
+====
+- [ ] create admin UI for editing file resides on s3 - php, easily hosted on cpanel?  use flysystem?
 
 # MIT

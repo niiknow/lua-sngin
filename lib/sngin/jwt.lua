@@ -19,7 +19,7 @@ function _M.sign(payload)
     payload = body
   })
 
-  return cjson.encode({token = jwt_token})
+  return cjson_safe.encode({token = jwt_token})
 end
 
 function _M.auth(token, claim_spec)
@@ -43,11 +43,11 @@ function _M.auth(token, claim_spec)
   if not jwt_obj.verified then
     ngx.log(ngx.WARN, "Invalid token: " .. jwt_obj.reason)
     ngx.header["Content-Type"] = "application/json"
-    ngx.say(cjson.encode({ error = "invalid token", mesage = jwt_obj.reason }))
+    ngx.say(cjson_safe.encode({ error = "invalid token", mesage = jwt_obj.reason }))
     ngx.exit(ngx.HTTP_UNAUTHORIZED)
   end
 
-  ngx.log(ngx.DEBUG, "JWT: " .. cjson.encode(jwt_obj))
+  ngx.log(ngx.DEBUG, "JWT: " .. cjson_safe.encode(jwt_obj))
 
   ngx.header["X-Auth-UserId"] = jwt_obj.payload.sub
 end
