@@ -18,4 +18,3 @@ proxy_hide_header           "x-amz-meta-s3b-last-modified";
 proxy_hide_header           "Set-Cookie";
 proxy_hide_header           "CF-Cache-Status";
 proxy_hide_header           "cf-ray";
-

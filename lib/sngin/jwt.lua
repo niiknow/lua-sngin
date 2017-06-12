@@ -2,17 +2,14 @@ local jwt               = require "resty.jwt"
 local validators        = require "resty.jwt-validators"
 local cjson_safe        = require "cjson.safe"
 local ngin              = require "sngin.ngin"
-
-local secret            = ngin.config.jwt_secret
-local ttl               = ngin.config.jwt_ttl or 600
 local _M = {}
 
 _M.validators = validators
 
-function _M.sign(payload)
+function _M.sign(payload, ttl, secret)
   local body = payload or {}
   body["iat"] = ngx.now()
-  body["exp"] = body["iat"] + ttl
+  body["exp"] = body["iat"] + (ttl or 600)
 
   local jwt_token = jwt:sign(secret, {
     header = { typ = "JWT", alg = "HS256" },
@@ -22,7 +19,7 @@ function _M.sign(payload)
   return cjson_safe.encode({token = jwt_token})
 end
 
-function _M.auth(token, claim_spec)
+function _M.auth(token, secret, claim_spec)
   if not token then
     ngx.log(ngx.WARN, err)
     ngx.exit(ngx.HTTP_UNAUTHORIZED)

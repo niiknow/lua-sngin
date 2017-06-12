@@ -1,1 +1,0 @@
-return "Hello from S3"

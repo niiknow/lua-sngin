@@ -5,11 +5,10 @@ user                                www-data;
 env AWS_ACCESS_KEY_ID;
 env AWS_SECRET_ACCESS_KEY;
 env AWS_S3_CODE_PATH;
+
 env AWS_DEFAULT_REGION;
 env SNGIN_CODECACHE_SIZE;
 env SNGIN_APP_PATH;
-env JWT_SECRET;
-env JWT_TTL;
 
 # use 1 for better benchmark result
 worker_processes                    1;

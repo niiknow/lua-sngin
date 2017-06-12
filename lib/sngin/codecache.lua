@@ -90,17 +90,19 @@ NOTE: urlHandler should use capture to simulate debounce
 
 		-- initialize valHolder
 		if (valHolder == nil) then
-			-- convert remoteUrl to localFullPath
-			-- expect url to be domain/path?query
+			-- strip query string and http/https://
 			local domainAndPath, query = string.match(url, "([^?#]*)(.*)")
 			domainAndPath = string.gsub(string.gsub(domainAndPath, "http://", ""), "https://", "")
 
-			local fileBasePath = string.gsub(localBasePath .. "/" .. domainAndPath, "%.%.", "")
-			fileBasePath = string.gsub(fileBasePath, "//", "/")
+		    -- expect directory
+			local fileBasePath = utils.sanitizePath(localBasePath .. "/" .. domainAndPath)
+
+			-- must store locally as index.lua
+			-- this way, a path can contain other paths
 			localFullPath = fileBasePath .. "/index.lua"
 
 			valHolder = {
-			    url = string.format(url .. "/index.lua"),
+			    url = url,
 				localPath = fileBasePath,
 				localFullPath = localFullPath,
 				lastCheck = os.time(),

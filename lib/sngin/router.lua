@@ -3,12 +3,15 @@
 local sandbox           = require "sngin.sandbox"
 local ngin              = require "sngin.ngin"
 local cc                = require "sngin.codecache"
+local utils             = require "sngin.utils"
+
 local _M  = {}
 
 local codeCache = cc:new(ngin.config.sngin_app_path)
 
-function _M.init()
-  local fn = codeCache.get(string.format("%s/%s", ngx.var.host, ngx.var.uri))
+function _M.run()
+  local path = utils.sanitizePath(string.format("%s/%s", ngx.var.host, ngx.var.uri))
+  local fn = codeCache.get(path)
   if (fn ~= nil ) then
     local rsp = sandbox.exec(fn)
     if (rsp ~= nil) then
@@ -18,7 +21,10 @@ function _M.init()
 end
 
 function _M.purge()
-  -- todo: write purge logic
+  local path = utils.sanitizePath(string.format("%s/%s", ngx.var.host, ngx.var.uri))
+  -- move local file path to some temp path
+    -- this purges code cache
+  -- change cache timestamp to purge nginx cache
 end
 
 return _M

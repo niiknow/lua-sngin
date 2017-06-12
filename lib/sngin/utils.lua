@@ -52,4 +52,18 @@ function _M.encodeURIComponent(s)
    return s
 end
 
+function _M.sanitizePath(s)
+	-- path should not have double quote, single quote, period
+	-- we purposely left casing because paths are case-sensitive
+	s = string.gsub(s, "[^a-zA-Z0-9.-_/]", "")
+
+	-- remove double period and forward slash
+	s = string.gsub(string.gsub(s, "%.%.", ""), "//", "/")
+
+	-- remove trailing forward slash
+	s = string.gsub(s, "/*$", "")
+
+	return s
+end
+
 return _M

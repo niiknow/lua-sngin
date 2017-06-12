@@ -195,14 +195,15 @@ function _M.getCodeFromS3(options)
   -- get options or default to current request host and uri
   local host                    = opts.host or ngx.var.host
   local path                    = opts.uri or ngx.var.uri
-  local url                     = opts.url or string.format("%s/%s/index.lua", host, path)
+  local args                    = ngx.req.get_uri_args()
+  local url                     = opts.url or string.format("%s/%s", host, path)
 
   -- ngx.log(ngx.ERR, "mydebug: " .. secret_key)
   local cleanPath, querystring  = string.match(url, "([^?#]*)(.*)")
-  local full_path               = string.format("/%s/%s", aws_s3_code_path, cleanPath)
+  local full_path               = utils.sanitizePath(string.format("/%s/%s", aws_s3_code_path, cleanPath))
 
   -- cleanup path, remove double forward slash and double periods from path
-  full_path                     = string.gsub(string.gsub(full_path, "%.%.", ""), "//", "/")
+  full_path                     = full_path .. "/index.lua"
 
   -- setup config
   local config = {
@@ -226,6 +227,9 @@ function _M.getCodeFromS3(options)
   end
 
   local uri = string.format("https://%s%s", config.aws_host, config.request_path)
+  if (args.cb) then
+    ngx.var.cb = tostring(os.time())
+  end
 
   -- set request header
   aws:set_ngx_auth_headers()
