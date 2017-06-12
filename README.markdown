@@ -41,6 +41,7 @@ the [ngx_lua module](http://wiki.nginx.org/HttpLuaModule), and [LuaJIT 2.1](http
 
 Synopsis
 ========
+Example below show how you can build an API to delete log table older than 60 days on Azure Table Storage.
 
 * Hit the site: http://example.com/deletelog
 > Code from s3://bucketname/folder/example.com/deletelog/index.lua
