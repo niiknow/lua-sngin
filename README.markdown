@@ -5,6 +5,8 @@ lua-sngin - dynamic lua scripting that scales
 
 Run your own multi-tenant lua microservice with code hosted on s3.
 
+This project has been redesigned and has moved here: [moonship](https://github.com/niiknow/moonship)
+
 Note
 ====
 
